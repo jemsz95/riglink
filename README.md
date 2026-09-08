@@ -25,6 +25,28 @@ client request -> quote (materials + labour) -> client approves
 | Design guide | Storybook 10                                                    |
 | Tests        | Vitest (jsdom + browser projects), Playwright                   |
 
+## Provisioning
+
+There are **no dashboard-only steps**. Schema lives in
+`supabase/migrations/`, and auth configuration — including the access-token
+hook that all authorization depends on — lives in `supabase/config.toml`:
+
+```bash
+supabase login && supabase link --project-ref <ref>
+npm run deploy      # db push + config push as one unit
+npm run db:types
+```
+
+Schema and auth config are a single deployment unit — `npm run deploy` pushes
+both so they cannot diverge. Pushing migrations without config leaves the hook
+function present but not invoked, which is the one way to half-deploy.
+
+`npm run config:diff` shows what a push would change; it is authoritative, so
+a setting changed in the dashboard and not mirrored in `config.toml` gets
+reverted on the next push.
+
+Full detail, including verification steps: **`supabase/BOOTSTRAP.md`**.
+
 ## Getting started
 
 ```bash

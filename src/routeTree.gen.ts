@@ -10,33 +10,150 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OrgSlugRouteImport } from './routes/$orgSlug'
+import { Route as PublicRouteImport } from './routes/_public'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PickWorkspaceRouteImport } from './routes/pick-workspace'
+import { Route as OrgSlugStaffRouteImport } from './routes/$orgSlug._staff'
+import { Route as PublicCallbackRouteImport } from './routes/_public.callback'
+import { Route as PublicCheckEmailRouteImport } from './routes/_public.check-email'
+import { Route as PublicLoginRouteImport } from './routes/_public.login'
+import { Route as PortalOrgSlugRouteImport } from './routes/portal.$orgSlug'
+import { Route as OrgSlugStaffIndexRouteImport } from './routes/$orgSlug._staff.index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrgSlugRoute = OrgSlugRouteImport.update({
+  id: '/$orgSlug',
+  path: '/$orgSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicRoute = PublicRouteImport.update({
+  id: '/_public',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PickWorkspaceRoute = PickWorkspaceRouteImport.update({
+  id: '/pick-workspace',
+  path: '/pick-workspace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrgSlugStaffRoute = OrgSlugStaffRouteImport.update({
+  id: '/_staff',
+  getParentRoute: () => OrgSlugRoute,
+} as any)
+const PublicCallbackRoute = PublicCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicCheckEmailRoute = PublicCheckEmailRouteImport.update({
+  id: '/check-email',
+  path: '/check-email',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicLoginRoute = PublicLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PortalOrgSlugRoute = PortalOrgSlugRouteImport.update({
+  id: '/portal/$orgSlug',
+  path: '/portal/$orgSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrgSlugStaffIndexRoute = OrgSlugStaffIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrgSlugStaffRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$orgSlug': typeof OrgSlugRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
+  '/pick-workspace': typeof PickWorkspaceRoute
+  '/callback': typeof PublicCallbackRoute
+  '/check-email': typeof PublicCheckEmailRoute
+  '/login': typeof PublicLoginRoute
+  '/portal/$orgSlug': typeof PortalOrgSlugRoute
+  '/$orgSlug/': typeof OrgSlugStaffIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$orgSlug': typeof OrgSlugStaffIndexRoute
+  '/onboarding': typeof OnboardingRoute
+  '/pick-workspace': typeof PickWorkspaceRoute
+  '/callback': typeof PublicCallbackRoute
+  '/check-email': typeof PublicCheckEmailRoute
+  '/login': typeof PublicLoginRoute
+  '/portal/$orgSlug': typeof PortalOrgSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$orgSlug': typeof OrgSlugRouteWithChildren
+  '/_public': typeof PublicRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
+  '/pick-workspace': typeof PickWorkspaceRoute
+  '/$orgSlug/_staff': typeof OrgSlugStaffRouteWithChildren
+  '/_public/callback': typeof PublicCallbackRoute
+  '/_public/check-email': typeof PublicCheckEmailRoute
+  '/_public/login': typeof PublicLoginRoute
+  '/portal/$orgSlug': typeof PortalOrgSlugRoute
+  '/$orgSlug/_staff/': typeof OrgSlugStaffIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/$orgSlug'
+    | '/onboarding'
+    | '/pick-workspace'
+    | '/callback'
+    | '/check-email'
+    | '/login'
+    | '/portal/$orgSlug'
+    | '/$orgSlug/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/$orgSlug'
+    | '/onboarding'
+    | '/pick-workspace'
+    | '/callback'
+    | '/check-email'
+    | '/login'
+    | '/portal/$orgSlug'
+  id:
+    | '__root__'
+    | '/'
+    | '/$orgSlug'
+    | '/_public'
+    | '/onboarding'
+    | '/pick-workspace'
+    | '/$orgSlug/_staff'
+    | '/_public/callback'
+    | '/_public/check-email'
+    | '/_public/login'
+    | '/portal/$orgSlug'
+    | '/$orgSlug/_staff/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  OrgSlugRoute: typeof OrgSlugRouteWithChildren
+  PublicRoute: typeof PublicRouteWithChildren
+  OnboardingRoute: typeof OnboardingRoute
+  PickWorkspaceRoute: typeof PickWorkspaceRoute
+  PortalOrgSlugRoute: typeof PortalOrgSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +165,124 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$orgSlug': {
+      id: '/$orgSlug'
+      path: '/$orgSlug'
+      fullPath: '/$orgSlug'
+      preLoaderRoute: typeof OrgSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_public': {
+      id: '/_public'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof PublicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pick-workspace': {
+      id: '/pick-workspace'
+      path: '/pick-workspace'
+      fullPath: '/pick-workspace'
+      preLoaderRoute: typeof PickWorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$orgSlug/_staff': {
+      id: '/$orgSlug/_staff'
+      path: ''
+      fullPath: '/$orgSlug'
+      preLoaderRoute: typeof OrgSlugStaffRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
+    '/_public/callback': {
+      id: '/_public/callback'
+      path: '/callback'
+      fullPath: '/callback'
+      preLoaderRoute: typeof PublicCallbackRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/check-email': {
+      id: '/_public/check-email'
+      path: '/check-email'
+      fullPath: '/check-email'
+      preLoaderRoute: typeof PublicCheckEmailRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/login': {
+      id: '/_public/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof PublicLoginRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/portal/$orgSlug': {
+      id: '/portal/$orgSlug'
+      path: '/portal/$orgSlug'
+      fullPath: '/portal/$orgSlug'
+      preLoaderRoute: typeof PortalOrgSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$orgSlug/_staff/': {
+      id: '/$orgSlug/_staff/'
+      path: '/'
+      fullPath: '/$orgSlug/'
+      preLoaderRoute: typeof OrgSlugStaffIndexRouteImport
+      parentRoute: typeof OrgSlugStaffRoute
+    }
   }
 }
 
+interface OrgSlugStaffRouteChildren {
+  OrgSlugStaffIndexRoute: typeof OrgSlugStaffIndexRoute
+}
+
+const OrgSlugStaffRouteChildren: OrgSlugStaffRouteChildren = {
+  OrgSlugStaffIndexRoute: OrgSlugStaffIndexRoute,
+}
+
+const OrgSlugStaffRouteWithChildren = OrgSlugStaffRoute._addFileChildren(
+  OrgSlugStaffRouteChildren,
+)
+
+interface OrgSlugRouteChildren {
+  OrgSlugStaffRoute: typeof OrgSlugStaffRouteWithChildren
+}
+
+const OrgSlugRouteChildren: OrgSlugRouteChildren = {
+  OrgSlugStaffRoute: OrgSlugStaffRouteWithChildren,
+}
+
+const OrgSlugRouteWithChildren =
+  OrgSlugRoute._addFileChildren(OrgSlugRouteChildren)
+
+interface PublicRouteChildren {
+  PublicCallbackRoute: typeof PublicCallbackRoute
+  PublicCheckEmailRoute: typeof PublicCheckEmailRoute
+  PublicLoginRoute: typeof PublicLoginRoute
+}
+
+const PublicRouteChildren: PublicRouteChildren = {
+  PublicCallbackRoute: PublicCallbackRoute,
+  PublicCheckEmailRoute: PublicCheckEmailRoute,
+  PublicLoginRoute: PublicLoginRoute,
+}
+
+const PublicRouteWithChildren =
+  PublicRoute._addFileChildren(PublicRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  OrgSlugRoute: OrgSlugRouteWithChildren,
+  PublicRoute: PublicRouteWithChildren,
+  OnboardingRoute: OnboardingRoute,
+  PickWorkspaceRoute: PickWorkspaceRoute,
+  PortalOrgSlugRoute: PortalOrgSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

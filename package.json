@@ -19,12 +19,16 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:new": "supabase migration new",
-    "db:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
+    "db:types": "supabase gen types typescript --project-id nhrtxcdmnjvewvctfwao > src/lib/supabase/database.types.ts",
     "db:test": "supabase test db",
-    "db:push": "supabase db push",
+    "db:push": "supabase db push --project-id nhrtxcdmnjvewvctfwao",
     "ui:add": "shadcn add && node scripts/normalize-ui.mjs",
     "ui:normalize": "node scripts/normalize-ui.mjs",
-    "test:browser": "vitest run --project browser"
+    "test:browser": "vitest run --project browser",
+    "config:diff": "supabase config diff --project-ref nhrtxcdmnjvewvctfwao",
+    "config:push": "supabase config push --project-ref nhrtxcdmnjvewvctfwao",
+    "db:migrations": "supabase migration list --project-ref nhrtxcdmnjvewvctfwao",
+    "deploy": "supabase db push --project-ref nhrtxcdmnjvewvctfwao && supabase config push --project-ref nhrtxcdmnjvewvctfwao"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
@@ -50,6 +54,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@storybook/addon-a11y": "^10.6.0",
     "@storybook/addon-docs": "^10.6.0",
     "@storybook/addon-themes": "^10.6.0",

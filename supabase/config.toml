@@ -304,13 +304,22 @@ max_frequency = "5s"
 
 # This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
 #
-# PHASE 1: this is the authorization source of record -- it mints app_metadata
-# .orgs / .clients / .epoch, which every RLS policy reads. It stays commented
-# until the migration creating app.custom_access_token_hook lands, because
-# pointing the hook at a missing function breaks auth for the whole local stack.
-# [auth.hook.custom_access_token]
-# enabled = true
-# uri = "pg-functions://postgres/app/custom_access_token_hook"
+# THE AUTHORIZATION SOURCE OF RECORD. It mints app_metadata.orgs / .clients /
+# .epoch / .overflow, which every RLS policy reads. If this is not enabled,
+# tokens carry no claims, every policy denies, and the app looks
+# comprehensively broken with no obvious cause.
+#
+# Applies to the local stack via `supabase start`, and to a remote project via
+# `supabase config push` -- so this file, not a dashboard click, is what makes
+# the behaviour reproducible on a new instance. See supabase/BOOTSTRAP.md.
+#
+# The referenced function is created by
+# 20260908225727_claims_epochs_and_hook.sql, and the RLS read-policies that let
+# supabase_auth_admin actually see its inputs by
+# 20260908232252_auth_admin_hook_read_policies.sql.
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/app/custom_access_token_hook"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
 [auth.sms.twilio]

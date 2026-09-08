@@ -25,7 +25,9 @@ export function createAppRouter(opts?: { queryClient?: QueryClient }) {
     // the most common Router+Query bug.
     defaultPreloadStaleTime: 0,
     defaultPendingComponent: AppPending,
-    defaultNotFoundComponent: AppNotFound,
+    // Wrapped: NotFoundRouteProps and AppNotFound's optional props are
+    // structurally incompatible, and AppNotFound's defaults are what we want.
+    defaultNotFoundComponent: () => <AppNotFound />,
     defaultPendingMs: 200,
     defaultPendingMinMs: 400,
     scrollRestoration: true,
