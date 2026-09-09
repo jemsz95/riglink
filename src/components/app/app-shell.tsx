@@ -19,14 +19,9 @@ const NAV = [
     icon: LayoutDashboard,
     exact: true,
   },
-  { to: '/$orgSlug' as const, label: 'Jobs', icon: Briefcase, disabled: true },
-  {
-    to: '/$orgSlug' as const,
-    label: 'Clients',
-    icon: Building2,
-    disabled: true,
-  },
-  { to: '/$orgSlug' as const, label: 'Sites', icon: MapPin, disabled: true },
+  { to: '/$orgSlug/jobs' as const, label: 'Jobs', icon: Briefcase },
+  { to: '/$orgSlug/clients' as const, label: 'Clients', icon: Building2 },
+  { to: '/$orgSlug/sites' as const, label: 'Sites', icon: MapPin },
   { to: '/$orgSlug' as const, label: 'Quotes', icon: FileText, disabled: true },
   {
     to: '/$orgSlug' as const,
@@ -35,6 +30,8 @@ const NAV = [
     disabled: true,
   },
 ]
+
+type NavTarget = (typeof NAV)[number]['to']
 
 /**
  * Staff shell: sidebar on md+, bottom bar below. Density stays `compact` here
@@ -82,7 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 interface NavItemProps {
-  to: '/$orgSlug'
+  to: NavTarget
   label: string
   icon: typeof LayoutDashboard
   orgSlug?: string

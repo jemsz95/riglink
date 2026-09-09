@@ -48,9 +48,12 @@ port = 54329
 # Configure one of the supported pooler modes: `transaction`, `session`.
 pool_mode = "transaction"
 # How many server connections to allow per user/database pair.
-default_pool_size = 20
+# Matching the platform defaults rather than the CLI template's, which would
+# halve max_client_conn (200 -> 100) on a project serving a public SPA. Neither
+# number was a considered choice, and `config push` applies both.
+default_pool_size = 15
 # Maximum number of client connections allowed.
-max_client_conn = 100
+max_client_conn = 200
 
 # [db.vault]
 # secret_key = "env(SECRET_VALUE)"
@@ -201,10 +204,16 @@ enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
-minimum_password_length = 6
+#
+# The app offers magic links only -- there is no password field anywhere in the
+# UI. But signups cannot be disabled (a magic link to a new address IS a
+# signup), so the password grant stays reachable via the API whether we use it
+# or not. An unused door is still a door: these are set to real values so it
+# cannot be walked through with a six-character password.
+minimum_password_length = 12
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
-password_requirements = ""
+password_requirements = "lower_upper_letters_digits_symbols"
 
 # Configure passkey sign-ins.
 # [auth.passkey]
@@ -249,9 +258,20 @@ enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
-max_frequency = "1s"
+#
+# 1s is the CLI template's LOCAL value and must never reach a real project:
+# `config push` is authoritative, so it would remove the rate limit on
+# magic-link and confirmation emails. That is an abuse vector -- an attacker can
+# bomb a third party's inbox through our project and burn our sending
+# reputation with it. The platform default is 60s; keep it.
+max_frequency = "1m"
 # Number of characters used in the email OTP.
-otp_length = 6
+#
+# 8, matching the platform default, rather than the CLI template's 6. Sign-in is
+# magic-link based so nobody types this, which is exactly why shortening it buys
+# nothing -- and `config push` overwrites the remote value, so leaving 6 here
+# would be a silent 100x reduction in OTP search space.
+otp_length = 8
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 600
 
@@ -322,6 +342,15 @@ enabled = true
 uri = "pg-functions://postgres/app/custom_access_token_hook"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
+#
+# EXPECTED PERMANENT DIFF: `config diff` reports this as local=false /
+# remote=true and always will. `config push` can switch between SMS providers
+# but cannot turn the active one off, so the remote keeps `twilio` selected.
+#
+# It is inert, not an exposure: phone sign-in is off
+# (`[auth.sms] enable_signup = false`, and the project reports
+# external_phone_enabled = false), so no SMS OTP can be requested at all, and
+# the provider holds no credentials. Do not chase this one.
 [auth.sms.twilio]
 enabled = false
 account_sid = ""
@@ -336,8 +365,12 @@ max_enrolled_factors = 10
 
 # Control MFA via App Authenticator (TOTP)
 [auth.mfa.totp]
-enroll_enabled = false
-verify_enabled = false
+# Left ON to match the platform default. There is no MFA enrolment UI yet, so
+# this changes nothing a user sees -- but `config push` is authoritative, and
+# shipping `false` would actively disable a security feature on the project
+# rather than merely not using it.
+enroll_enabled = true
+verify_enabled = true
 
 # Configure MFA via Phone Messaging
 [auth.mfa.phone]

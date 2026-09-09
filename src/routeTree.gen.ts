@@ -20,6 +20,12 @@ import { Route as PublicCheckEmailRouteImport } from './routes/_public.check-ema
 import { Route as PublicLoginRouteImport } from './routes/_public.login'
 import { Route as PortalOrgSlugRouteImport } from './routes/portal.$orgSlug'
 import { Route as OrgSlugStaffIndexRouteImport } from './routes/$orgSlug._staff.index'
+import { Route as OrgSlugStaffClientsIndexRouteImport } from './routes/$orgSlug._staff.clients.index'
+import { Route as OrgSlugStaffClientsClientIdRouteImport } from './routes/$orgSlug._staff.clients.$clientId'
+import { Route as OrgSlugStaffJobsIndexRouteImport } from './routes/$orgSlug._staff.jobs.index'
+import { Route as OrgSlugStaffJobsJobIdRouteImport } from './routes/$orgSlug._staff.jobs.$jobId'
+import { Route as OrgSlugStaffJobsNewRouteImport } from './routes/$orgSlug._staff.jobs.new'
+import { Route as OrgSlugStaffSitesIndexRouteImport } from './routes/$orgSlug._staff.sites.index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -74,6 +80,38 @@ const OrgSlugStaffIndexRoute = OrgSlugStaffIndexRouteImport.update({
   path: '/',
   getParentRoute: () => OrgSlugStaffRoute,
 } as any)
+const OrgSlugStaffClientsIndexRoute =
+  OrgSlugStaffClientsIndexRouteImport.update({
+    id: '/clients/',
+    path: '/clients/',
+    getParentRoute: () => OrgSlugStaffRoute,
+  } as any)
+const OrgSlugStaffClientsClientIdRoute =
+  OrgSlugStaffClientsClientIdRouteImport.update({
+    id: '/clients/$clientId',
+    path: '/clients/$clientId',
+    getParentRoute: () => OrgSlugStaffRoute,
+  } as any)
+const OrgSlugStaffJobsIndexRoute = OrgSlugStaffJobsIndexRouteImport.update({
+  id: '/jobs/',
+  path: '/jobs/',
+  getParentRoute: () => OrgSlugStaffRoute,
+} as any)
+const OrgSlugStaffJobsJobIdRoute = OrgSlugStaffJobsJobIdRouteImport.update({
+  id: '/jobs/$jobId',
+  path: '/jobs/$jobId',
+  getParentRoute: () => OrgSlugStaffRoute,
+} as any)
+const OrgSlugStaffJobsNewRoute = OrgSlugStaffJobsNewRouteImport.update({
+  id: '/jobs/new',
+  path: '/jobs/new',
+  getParentRoute: () => OrgSlugStaffRoute,
+} as any)
+const OrgSlugStaffSitesIndexRoute = OrgSlugStaffSitesIndexRouteImport.update({
+  id: '/sites/',
+  path: '/sites/',
+  getParentRoute: () => OrgSlugStaffRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -85,6 +123,12 @@ export interface FileRoutesByFullPath {
   '/login': typeof PublicLoginRoute
   '/portal/$orgSlug': typeof PortalOrgSlugRoute
   '/$orgSlug/': typeof OrgSlugStaffIndexRoute
+  '/$orgSlug/clients/$clientId': typeof OrgSlugStaffClientsClientIdRoute
+  '/$orgSlug/jobs/$jobId': typeof OrgSlugStaffJobsJobIdRoute
+  '/$orgSlug/jobs/new': typeof OrgSlugStaffJobsNewRoute
+  '/$orgSlug/clients/': typeof OrgSlugStaffClientsIndexRoute
+  '/$orgSlug/jobs/': typeof OrgSlugStaffJobsIndexRoute
+  '/$orgSlug/sites/': typeof OrgSlugStaffSitesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -95,6 +139,12 @@ export interface FileRoutesByTo {
   '/check-email': typeof PublicCheckEmailRoute
   '/login': typeof PublicLoginRoute
   '/portal/$orgSlug': typeof PortalOrgSlugRoute
+  '/$orgSlug/clients/$clientId': typeof OrgSlugStaffClientsClientIdRoute
+  '/$orgSlug/jobs/$jobId': typeof OrgSlugStaffJobsJobIdRoute
+  '/$orgSlug/jobs/new': typeof OrgSlugStaffJobsNewRoute
+  '/$orgSlug/clients': typeof OrgSlugStaffClientsIndexRoute
+  '/$orgSlug/jobs': typeof OrgSlugStaffJobsIndexRoute
+  '/$orgSlug/sites': typeof OrgSlugStaffSitesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -109,6 +159,12 @@ export interface FileRoutesById {
   '/_public/login': typeof PublicLoginRoute
   '/portal/$orgSlug': typeof PortalOrgSlugRoute
   '/$orgSlug/_staff/': typeof OrgSlugStaffIndexRoute
+  '/$orgSlug/_staff/clients/$clientId': typeof OrgSlugStaffClientsClientIdRoute
+  '/$orgSlug/_staff/jobs/$jobId': typeof OrgSlugStaffJobsJobIdRoute
+  '/$orgSlug/_staff/jobs/new': typeof OrgSlugStaffJobsNewRoute
+  '/$orgSlug/_staff/clients/': typeof OrgSlugStaffClientsIndexRoute
+  '/$orgSlug/_staff/jobs/': typeof OrgSlugStaffJobsIndexRoute
+  '/$orgSlug/_staff/sites/': typeof OrgSlugStaffSitesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -122,6 +178,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/portal/$orgSlug'
     | '/$orgSlug/'
+    | '/$orgSlug/clients/$clientId'
+    | '/$orgSlug/jobs/$jobId'
+    | '/$orgSlug/jobs/new'
+    | '/$orgSlug/clients/'
+    | '/$orgSlug/jobs/'
+    | '/$orgSlug/sites/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -132,6 +194,12 @@ export interface FileRouteTypes {
     | '/check-email'
     | '/login'
     | '/portal/$orgSlug'
+    | '/$orgSlug/clients/$clientId'
+    | '/$orgSlug/jobs/$jobId'
+    | '/$orgSlug/jobs/new'
+    | '/$orgSlug/clients'
+    | '/$orgSlug/jobs'
+    | '/$orgSlug/sites'
   id:
     | '__root__'
     | '/'
@@ -145,6 +213,12 @@ export interface FileRouteTypes {
     | '/_public/login'
     | '/portal/$orgSlug'
     | '/$orgSlug/_staff/'
+    | '/$orgSlug/_staff/clients/$clientId'
+    | '/$orgSlug/_staff/jobs/$jobId'
+    | '/$orgSlug/_staff/jobs/new'
+    | '/$orgSlug/_staff/clients/'
+    | '/$orgSlug/_staff/jobs/'
+    | '/$orgSlug/_staff/sites/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -235,15 +309,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugStaffIndexRouteImport
       parentRoute: typeof OrgSlugStaffRoute
     }
+    '/$orgSlug/_staff/clients/': {
+      id: '/$orgSlug/_staff/clients/'
+      path: '/clients'
+      fullPath: '/$orgSlug/clients/'
+      preLoaderRoute: typeof OrgSlugStaffClientsIndexRouteImport
+      parentRoute: typeof OrgSlugStaffRoute
+    }
+    '/$orgSlug/_staff/clients/$clientId': {
+      id: '/$orgSlug/_staff/clients/$clientId'
+      path: '/clients/$clientId'
+      fullPath: '/$orgSlug/clients/$clientId'
+      preLoaderRoute: typeof OrgSlugStaffClientsClientIdRouteImport
+      parentRoute: typeof OrgSlugStaffRoute
+    }
+    '/$orgSlug/_staff/jobs/': {
+      id: '/$orgSlug/_staff/jobs/'
+      path: '/jobs'
+      fullPath: '/$orgSlug/jobs/'
+      preLoaderRoute: typeof OrgSlugStaffJobsIndexRouteImport
+      parentRoute: typeof OrgSlugStaffRoute
+    }
+    '/$orgSlug/_staff/jobs/$jobId': {
+      id: '/$orgSlug/_staff/jobs/$jobId'
+      path: '/jobs/$jobId'
+      fullPath: '/$orgSlug/jobs/$jobId'
+      preLoaderRoute: typeof OrgSlugStaffJobsJobIdRouteImport
+      parentRoute: typeof OrgSlugStaffRoute
+    }
+    '/$orgSlug/_staff/jobs/new': {
+      id: '/$orgSlug/_staff/jobs/new'
+      path: '/jobs/new'
+      fullPath: '/$orgSlug/jobs/new'
+      preLoaderRoute: typeof OrgSlugStaffJobsNewRouteImport
+      parentRoute: typeof OrgSlugStaffRoute
+    }
+    '/$orgSlug/_staff/sites/': {
+      id: '/$orgSlug/_staff/sites/'
+      path: '/sites'
+      fullPath: '/$orgSlug/sites/'
+      preLoaderRoute: typeof OrgSlugStaffSitesIndexRouteImport
+      parentRoute: typeof OrgSlugStaffRoute
+    }
   }
 }
 
 interface OrgSlugStaffRouteChildren {
   OrgSlugStaffIndexRoute: typeof OrgSlugStaffIndexRoute
+  OrgSlugStaffClientsClientIdRoute: typeof OrgSlugStaffClientsClientIdRoute
+  OrgSlugStaffJobsJobIdRoute: typeof OrgSlugStaffJobsJobIdRoute
+  OrgSlugStaffJobsNewRoute: typeof OrgSlugStaffJobsNewRoute
+  OrgSlugStaffClientsIndexRoute: typeof OrgSlugStaffClientsIndexRoute
+  OrgSlugStaffJobsIndexRoute: typeof OrgSlugStaffJobsIndexRoute
+  OrgSlugStaffSitesIndexRoute: typeof OrgSlugStaffSitesIndexRoute
 }
 
 const OrgSlugStaffRouteChildren: OrgSlugStaffRouteChildren = {
   OrgSlugStaffIndexRoute: OrgSlugStaffIndexRoute,
+  OrgSlugStaffClientsClientIdRoute: OrgSlugStaffClientsClientIdRoute,
+  OrgSlugStaffJobsJobIdRoute: OrgSlugStaffJobsJobIdRoute,
+  OrgSlugStaffJobsNewRoute: OrgSlugStaffJobsNewRoute,
+  OrgSlugStaffClientsIndexRoute: OrgSlugStaffClientsIndexRoute,
+  OrgSlugStaffJobsIndexRoute: OrgSlugStaffJobsIndexRoute,
+  OrgSlugStaffSitesIndexRoute: OrgSlugStaffSitesIndexRoute,
 }
 
 const OrgSlugStaffRouteWithChildren = OrgSlugStaffRoute._addFileChildren(

@@ -96,6 +96,32 @@ outlive a permission change; it is bounded by `jwt_expiry = 600` and made
 immediate by a claim-epoch table whose freshness gate is folded into the RLS
 accessor functions. Do not raise `jwt_expiry` without revisiting that.
 
+**Query keys are org-scoped from the first segment**, built only by the
+factories in `src/features/*/keys.ts` — `['org', orgId, 'jobs', …]`. This makes
+cross-tenant cache bleed structurally impossible and org switching a single
+invalidation. `no-restricted-syntax` in `eslint.config.js` rejects inline
+`queryKey` array literals outside those files, because stale rows from another
+tenant after a switch are indistinguishable from an RLS breach to the customer
+looking at the screen.
+
+**Tables sort and page on the server, and the URL owns that state.** TanStack
+Table v9 runs with `manualSorting` / `manualPagination` (set once in
+`src/components/app/data-table/table-hook.ts`); the flags tell the table its
+`data` is already the requested page in the requested order, so it must not
+re-sort or slice. Sort and page live in search params so a filtered view is
+linkable and the back button undoes a sort. Sortable column ids are the
+database column names and are whitelisted in `filters.ts` — the value reaches
+PostgREST's `order`, and ordering by an arbitrary column is an oracle over one
+the portal never shows.
+
+**Realtime needs the publication, not just a subscription.** A
+`postgres_changes` channel on a table that is not in `supabase_realtime`
+subscribes successfully and delivers nothing — a live-looking dashboard showing
+stale data. `20260909145552_realtime_jobs.sql` publishes `jobs` and
+`job_status_events`. Replica identity stays `DEFAULT` deliberately: `FULL`
+would put `internal_notes` into `old_record`, which Realtime sends to
+subscribers.
+
 **Money is integer cents everywhere** — database, UI, CSV export. Never a
 float. One shared `computeTotals` serves quotes, invoices and the accounting
 export so the three cannot disagree.

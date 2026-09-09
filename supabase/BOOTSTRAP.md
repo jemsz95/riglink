@@ -97,3 +97,41 @@ changes, in the same migration:
 
 Step 3 is what forces every live session to refresh into the new shape instead
 of failing in ways nobody can reproduce.
+
+## Verified against the live project
+
+The whole chain has now been exercised on `nhrtxcdmnjvewvctfwao` with a real
+GoTrue-issued token, not simulated in SQL:
+
+| Step                                    | Result                                                                                             |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Sign in, no memberships                 | `claims_version: 1`, `orgs: {}`, `clients: []`, `epoch: 0`, `overflow: false`                      |
+| `exp - iat` on the token                | 600s, confirming the pushed `jwt_expiry`                                                           |
+| `create_organization`                   | org created, caller's claim epoch bumped 0 → 1                                                     |
+| Reuse of the pre-membership token       | `P0001` / `hint: refresh_session`, message `stale authorization claims (token epoch 0, current 1)` |
+| After `refresh_token`                   | `epoch: 1`, `orgs: { "<id>": "owner" }`, and the previously refused read succeeds                  |
+| Insert a job with no `number`           | trigger assigned 1, then 2 — gapless per org                                                       |
+| Illegal transition (`draft → invoiced`) | `23514 illegal job transition draft -> invoiced for actor staff`                                   |
+| Client-only edge attempted by staff     | `23514` — staff cannot forge a client approval                                                     |
+| `DELETE` on `job_status_events`         | affects nothing; the audit trail is append-only                                                    |
+| Realtime `postgres_changes`             | both `jobs` and `job_status_events` bindings deliver                                               |
+| Realtime `old_record` payload           | contains only `id`, confirming `REPLICA IDENTITY DEFAULT` keeps `internal_notes` server-side       |
+
+All test rows were removed afterwards; every table is back to zero except the
+36 rows of `job_status_transitions` reference data seeded by migration.
+
+### Seeding auth users directly (for `seed.sql`)
+
+Inserting into `auth.users` by hand fails sign-in with a bare
+`500 Database error querying schema` unless the token columns are empty
+strings rather than `NULL`. GoTrue scans them into non-nullable Go strings, so
+`NULL` breaks the row scan before any password check happens:
+
+```sql
+confirmation_token, recovery_token, email_change_token_new,
+email_change_token_current, email_change, phone_change,
+phone_change_token, reauthentication_token  -- all '' , never NULL
+```
+
+Prefer the Auth admin API for real seeding. If SQL is unavoidable, set those to
+`''` and `email_confirmed_at` to `now()`.

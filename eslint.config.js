@@ -15,6 +15,32 @@ export default [
     },
   },
   {
+    /**
+     * Query keys must come from a key factory, never an inline literal.
+     *
+     * Every key in this app starts with the org id so that switching org is a
+     * single invalidation and cross-tenant cache bleed is structurally
+     * impossible. An inline `queryKey: ['jobs', id]` silently opts out of that
+     * -- and stale rows from another tenant appearing after a switch is
+     * indistinguishable from an RLS breach to the customer looking at the
+     * screen. This is cheap to get wrong and expensive to explain, so the
+     * linter refuses it.
+     */
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/features/*/keys.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "Property[key.name='queryKey'] > ArrayExpression, Property[key.name='mutationKey'] > ArrayExpression",
+          message:
+            'Build query keys with a factory from features/<domain>/keys.ts, not an inline array. Keys must be org-scoped so cross-tenant cache bleed is impossible.',
+        },
+      ],
+    },
+  },
+  {
     // Vendored from the shadcn registry. These files are regenerated verbatim by
     // `shadcn add`, so hand-fixing stylistic findings is endless churn -- the
     // next update reverts them. Correctness rules stay on; only the rules that
