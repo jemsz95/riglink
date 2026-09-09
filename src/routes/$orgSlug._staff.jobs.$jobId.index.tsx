@@ -1,7 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { toast } from 'sonner'
-import { ArrowLeft, Building2, CalendarClock, MapPin, User } from 'lucide-react'
+import {
+  ArrowLeft,
+  Building2,
+  CalendarClock,
+  FileText,
+  MapPin,
+  User,
+} from 'lucide-react'
 import { Route as OrgRoute } from './$orgSlug'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,6 +19,7 @@ import { JobPriorityBadge } from '@/components/domain/job-priority-badge'
 import { JobStatusBadge } from '@/components/domain/job-status-badge'
 import { StatusTimeline } from '@/components/domain/status-timeline'
 import { JobStatusActions } from '@/features/jobs/job-status-actions'
+import { canDispatch } from '@/features/orgs/permissions'
 import { jobDetailQuery, jobStatusEventsQuery } from '@/features/jobs/queries'
 import {
   formatAddressLine,
@@ -22,7 +30,7 @@ import {
 } from '@/lib/format'
 import { toUserMessage } from '@/lib/supabase/errors'
 
-export const Route = createFileRoute('/$orgSlug/_staff/jobs/$jobId')({
+export const Route = createFileRoute('/$orgSlug/_staff/jobs/$jobId/')({
   component: JobDetailPage,
 })
 
@@ -82,13 +90,26 @@ function JobDetailPage() {
           </div>
         </div>
 
-        <JobStatusActions
-          orgId={org.id}
-          role={role}
-          jobId={data.id}
-          status={data.status}
-          onError={(error) => toast.error(toUserMessage(error))}
-        />
+        <div className="flex items-center gap-2">
+          {canDispatch(role) ? (
+            <Button asChild variant="outline">
+              <Link
+                to="/$orgSlug/jobs/$jobId/quote"
+                params={{ orgSlug, jobId }}
+              >
+                <FileText className="size-4" aria-hidden />
+                Quote
+              </Link>
+            </Button>
+          ) : null}
+          <JobStatusActions
+            orgId={org.id}
+            role={role}
+            jobId={data.id}
+            status={data.status}
+            onError={(error) => toast.error(toUserMessage(error))}
+          />
+        </div>
       </header>
 
       <div className="grid gap-4 lg:grid-cols-3">

@@ -43,6 +43,41 @@ export const siteKeys = {
     ['org', orgId, 'sites', 'for-client', clientId] as const,
 }
 
+export const quoteKeys = {
+  all: (orgId: string) => ['org', orgId, 'quotes'] as const,
+  forJob: (orgId: string, jobId: string) =>
+    ['org', orgId, 'quotes', 'for-job', jobId] as const,
+  detail: (orgId: string, quoteId: string) =>
+    ['org', orgId, 'quotes', 'detail', quoteId] as const,
+  lines: (orgId: string, quoteId: string) =>
+    ['org', orgId, 'quotes', 'lines', quoteId] as const,
+  approvals: (orgId: string, jobId: string) =>
+    ['org', orgId, 'quotes', 'approvals', jobId] as const,
+}
+
+export const catalogKeys = {
+  all: (orgId: string) => ['org', orgId, 'catalog'] as const,
+  list: (orgId: string, search: string) =>
+    ['org', orgId, 'catalog', 'list', search] as const,
+}
+
+/**
+ * Portal keys are scoped by CLIENT, not by org.
+ *
+ * A contact can be a contact for two clients inside one org, and those two
+ * views must not share a cache entry -- which an org-only scope would let
+ * them do.
+ */
+export const portalKeys = {
+  all: (clientId: string) => ['portal', clientId] as const,
+  jobs: (clientId: string) => ['portal', clientId, 'jobs'] as const,
+  job: (clientId: string, jobId: string) =>
+    ['portal', clientId, 'jobs', jobId] as const,
+  quote: (clientId: string, jobId: string) =>
+    ['portal', clientId, 'quote', jobId] as const,
+  sites: (clientId: string) => ['portal', clientId, 'sites'] as const,
+}
+
 /**
  * The one deliberately un-scoped key: the legal state machine is global
  * reference data, identical for every tenant, and world-readable to signed-in

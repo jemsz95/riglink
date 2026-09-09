@@ -120,6 +120,44 @@ GoTrue-issued token, not simulated in SQL:
 All test rows were removed afterwards; every table is back to zero except the
 36 rows of `job_status_transitions` reference data seeded by migration.
 
+### The approval loop (Phase 3)
+
+Run with four real users — an owner, a `primary` contact, a `viewer` contact
+and a `tech` — all signing in through the public auth endpoint:
+
+| Step                                                                 | Result                                                                                                               |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Contact claims a pending invite via `bootstrap_session`              | `contacts_claimed: 1`, and the refreshed token carries `clients: [<id>]` with `orgs: {}`                             |
+| `submit_job_request`                                                 | job created `requested`, `source: client_portal`, contact attributed, and the history row reads `actor_kind: client` |
+| One batch insert of 3 mixed lines                                    | generated columns exact, including `-2550` / `-510` on the discount line                                             |
+| Header totals                                                        | 25363 + 5073 = 30436, matching `computeTotals` in TypeScript exactly                                                 |
+| Client reads a DRAFT quote                                           | empty — through the views _and_ the base tables                                                                      |
+| Client approves a draft                                              | refused, `23514`                                                                                                     |
+| `send_quote`                                                         | status `sent`, `locked_at` set, job → `quoted`                                                                       |
+| Line edit after send, as the OWNER                                   | refused, `23514`, hint `supersede the quote…`                                                                        |
+| Staff attempt `quoted → approved`                                    | refused: `illegal job transition quoted -> approved for actor staff`                                                 |
+| `approve_quote` as the primary contact                               | approval row written, quote and job → `approved`, history row `actor_kind: client`                                   |
+| `approvals.snapshot`                                                 | full header, job, and every line with its computed totals; lines sum to the header total                             |
+| Second approval on the same quote                                    | refused, `23514`                                                                                                     |
+| `approve_quote` / `decline_quote` as a `viewer`                      | refused, `42501 not authorised to decide on this quote`                                                              |
+| `UPDATE` / `DELETE` on `approvals`, as the owner                     | affect nothing — append-only                                                                                         |
+| Expired quote (`valid_until` in the past)                            | refused, `23514`, hint `ask for an updated quote`                                                                    |
+| A `tech` reads quotes / lines / catalogue / approvals                | all empty; the same tech sees the job itself                                                                         |
+| An owner of a _different_ org                                        | sees no quotes or approvals; `send_quote` returns `42501 quote not found`                                            |
+| `portal_*_v` columns `access_notes`, `internal_note`, `lead_tech_id` | `42703 does not exist` — structurally absent, not merely filtered                                                    |
+
+Two bugs were found by this run and fixed in
+`20260909164707` and `20260909164812`: both `send_quote` and
+`app.decide_quote` moved the job unconditionally, so any **second** quote on a
+job that had already been approved aborted the whole transaction against the
+transition trigger. The client pressed Approve and nothing happened. Both now
+consult `job_status_transitions` first and move the job only when the edge is
+legal, which keeps "you cannot quote a cancelled job" while allowing
+additional work on a live job.
+
+All test rows were removed afterwards; every table is back to zero except the
+36 rows of `job_status_transitions` reference data.
+
 ### Seeding auth users directly (for `seed.sql`)
 
 Inserting into `auth.users` by hand fails sign-in with a bare

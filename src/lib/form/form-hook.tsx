@@ -125,7 +125,14 @@ function TextAreaField({
   )
 }
 
-export const { useAppForm } = createFormHook({
+/**
+ * `withForm` is exported alongside `useAppForm` because a large form has to be
+ * split into components, and a child cannot take `form` as an ordinary prop --
+ * the form type carries a dozen validator generics, so the annotation is
+ * unwriteable without `any`, which then loses field-name checking entirely.
+ * `withForm` binds the parent's exact type for the child.
+ */
+export const { useAppForm, withForm } = createFormHook({
   fieldContext,
   formContext,
   fieldComponents: { TextField, TextAreaField },

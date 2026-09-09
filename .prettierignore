@@ -5,5 +5,8 @@ dist
 storybook-static
 coverage
 src/routeTree.gen.ts
+# Regenerated verbatim by `npm run db:types`; formatting it is churn that
+# reappears on every schema change, and eslint already ignores it.
+src/lib/supabase/database.types.ts
 test-results
 playwright-report

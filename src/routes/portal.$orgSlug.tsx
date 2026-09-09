@@ -1,5 +1,12 @@
-import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
+import {
+  Link,
+  Outlet,
+  createFileRoute,
+  notFound,
+  redirect,
+} from '@tanstack/react-router'
 import { AppNotFound } from '@/components/app/app-not-found'
+import { UserMenu } from '@/components/app/user-menu'
 import { authStore } from '@/lib/auth/session-store'
 import { membershipsQuery } from '@/features/orgs/queries'
 
@@ -34,30 +41,35 @@ export const Route = createFileRoute('/portal/$orgSlug')({
 
 function PortalPage() {
   const { orgName, clients } = Route.useRouteContext()
+  const { orgSlug } = Route.useParams()
 
   return (
-    <div className="bg-background min-h-dvh">
-      <header className="border-border bg-card border-b">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 p-4">
-          <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md text-sm font-semibold">
-            {orgName.slice(0, 1).toUpperCase()}
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-medium">{orgName}</span>
-            <span className="text-muted-foreground text-2xs">
-              Client portal
-            </span>
-          </div>
+    <div className="bg-background flex min-h-dvh flex-col">
+      <header className="border-border bg-card border-b print:hidden">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 p-4">
+          <Link
+            to="/portal/$orgSlug"
+            params={{ orgSlug }}
+            className="flex items-center gap-3"
+          >
+            <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md text-sm font-semibold">
+              {orgName.slice(0, 1).toUpperCase()}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">{orgName}</span>
+              <span className="text-muted-foreground text-2xs">
+                {clients.length === 1
+                  ? clients[0].client_name
+                  : `${clients.length} accounts`}
+              </span>
+            </div>
+          </Link>
+          <UserMenu />
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
-        <h1 className="text-xl font-semibold tracking-tight">Your jobs</h1>
-        <p className="text-muted-foreground text-sm">
-          You are a contact for{' '}
-          {clients.map((entry) => entry.client_name).join(', ')}. Requesting
-          work and approving quotes arrive in phase 3.
-        </p>
+      <main className="mx-auto w-full max-w-4xl flex-1 p-4">
+        <Outlet />
       </main>
     </div>
   )
