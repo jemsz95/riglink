@@ -247,6 +247,44 @@ There are currently **no ERROR-level findings**. The accepted set is the
 are meant to call, and eleven `multiple_permissive_policies` warnings that are
 the price of serving staff and contacts from one `authenticated` role.
 
+**Evidence commits are idempotent, and that is the load-bearing part.** The
+field pipeline is compress → IndexedDB → resumable upload (tus) → insert the
+row, and any step can be interrupted and resumed hours later on a different
+network. The dangerous failure is not a commit that fails — it is a commit
+that **succeeded and lost its response**, because the retry then duplicates
+the photo. So the client mints `client_ref` before the first attempt, and
+`unique (org_id, client_ref)` turns a replay into a conflict rather than a
+second row. `isCommitAlreadyApplied` treats that conflict as success.
+Confirmed against the live API: the first commit returns `201`, the identical
+replay returns `409` with code `23505`.
+
+The same `client_ref` is the storage filename, so a resumed upload targets the
+same object instead of leaving a half-written orphan beside it.
+
+**Evidence is internal until someone says otherwise.** `client_visible`
+defaults to false, and the storage policy for the client consults it — so
+toggling it off stops new signed URLs from being issued immediately. It does
+**not** recall a URL already in a client's hands: a signed URL is a bearer
+token and stays valid until it expires. Verified both halves. That is why
+evidence URLs are signed for 60 seconds rather than an hour.
+
+**The storage path is the tenant boundary, not a convention.**
+`evidence/<org_id>/<job_id>/<client_ref>.<ext>`, with the policies keying off
+`(storage.foldername(name))[1]`. A tech uploading under another org's prefix
+is refused with `42501`. Deletion is owner/admin only — a tech refused with
+`AccessDenied` — because a photo that can vanish is worth less as evidence.
+
+**Two clocks, both recorded.** `captured_at` is the device's and can be wrong;
+`created_at` is the server's. Keeping both means the field log can show the
+order the tech actually worked in while the record still says when things
+arrived. The gallery orders by the device clock and falls back to the server's,
+and the index matches that expression.
+
+**Notes are sent before photos.** `comparePriority` puts a few hundred bytes
+saying "valve seized, need the 24mm" ahead of a 3MB photo of the valve,
+because one bar of signal should deliver the message even if the photo does not
+get through that window.
+
 **Money is integer cents everywhere** — database, UI, CSV export. Never a
 float. One shared `computeTotals` serves quotes, invoices and the accounting
 export so the three cannot disagree.

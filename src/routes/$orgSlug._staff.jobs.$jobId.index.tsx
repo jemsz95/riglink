@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Building2,
   CalendarClock,
+  Camera,
   FileText,
   MapPin,
   User,
@@ -92,6 +93,14 @@ function JobDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Every staff role, techs included: recording what was found on
+              site is the tech's job, and this is the surface they own. */}
+          <Button asChild variant="outline">
+            <Link to="/$orgSlug/jobs/$jobId/field" params={{ orgSlug, jobId }}>
+              <Camera className="size-4" aria-hidden />
+              Field
+            </Link>
+          </Button>
           {canDispatch(role) ? (
             <Button asChild variant="outline">
               <Link

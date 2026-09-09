@@ -14,6 +14,8 @@ import {
   portalJobQuery,
   portalQuoteQuery,
 } from '@/features/portal/queries'
+import { PortalEvidence } from '@/features/evidence/portal-evidence'
+import { portalJobEvidenceQuery } from '@/features/evidence/queries'
 import { QuotePreview } from '@/features/quotes/quote-preview'
 import { formatDate, formatJobNumber } from '@/lib/format'
 import { toUserMessage } from '@/lib/supabase/errors'
@@ -31,6 +33,7 @@ function PortalJobPage() {
   const job = useQuery(portalJobQuery(client.client_id, jobId))
   const quote = useQuery(portalQuoteQuery(client.client_id, jobId))
   const contacts = useQuery(portalContactsQuery())
+  const evidence = useQuery(portalJobEvidenceQuery(client.client_id, jobId))
   const myRole = contacts.data?.find(
     (contact) => contact.client_id === client.client_id,
   )?.role
@@ -136,6 +139,14 @@ function PortalJobPage() {
           </div>
         ) : null}
       </dl>
+
+      {evidence.data && evidence.data.length > 0 ? (
+        <PortalEvidence
+          clientId={client.client_id}
+          items={evidence.data}
+          timezone={data.portal_site_v?.timezone ?? null}
+        />
+      ) : null}
 
       {quote.isPending ? (
         <Skeleton className="h-48 w-full" />

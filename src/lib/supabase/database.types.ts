@@ -397,6 +397,133 @@ export type Database = {
           },
         ]
       }
+      job_evidence: {
+        Row: {
+          body: string | null
+          byte_size: number | null
+          caption: string | null
+          captured_at: string | null
+          captured_by: string | null
+          client_id: string
+          client_ref: string
+          client_visible: boolean
+          created_at: string
+          height: number | null
+          id: string
+          job_id: string
+          kind: Database["public"]["Enums"]["evidence_kind"]
+          mime_type: string | null
+          org_id: string
+          storage_path: string | null
+          updated_at: string
+          width: number | null
+        }
+        Insert: {
+          body?: string | null
+          byte_size?: number | null
+          caption?: string | null
+          captured_at?: string | null
+          captured_by?: string | null
+          client_id: string
+          client_ref: string
+          client_visible?: boolean
+          created_at?: string
+          height?: number | null
+          id?: string
+          job_id: string
+          kind: Database["public"]["Enums"]["evidence_kind"]
+          mime_type?: string | null
+          org_id: string
+          storage_path?: string | null
+          updated_at?: string
+          width?: number | null
+        }
+        Update: {
+          body?: string | null
+          byte_size?: number | null
+          caption?: string | null
+          captured_at?: string | null
+          captured_by?: string | null
+          client_id?: string
+          client_ref?: string
+          client_visible?: boolean
+          created_at?: string
+          height?: number | null
+          id?: string
+          job_id?: string
+          kind?: Database["public"]["Enums"]["evidence_kind"]
+          mime_type?: string | null
+          org_id?: string
+          storage_path?: string | null
+          updated_at?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_evidence_captured_by_fkey"
+            columns: ["captured_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_evidence_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "job_evidence_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "portal_job_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "job_evidence_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "job_evidence_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "job_evidence_job_org_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "job_evidence_job_org_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "portal_job_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "job_evidence_job_org_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "job_evidence_job_org_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
       job_internal_notes: {
         Row: {
           created_at: string
@@ -1238,6 +1365,80 @@ export type Database = {
       }
     }
     Views: {
+      portal_job_evidence_v: {
+        Row: {
+          body: string | null
+          caption: string | null
+          captured_at: string | null
+          client_id: string | null
+          created_at: string | null
+          height: number | null
+          id: string | null
+          job_id: string | null
+          kind: Database["public"]["Enums"]["evidence_kind"] | null
+          mime_type: string | null
+          storage_path: string | null
+          width: number | null
+        }
+        Insert: {
+          body?: string | null
+          caption?: string | null
+          captured_at?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          height?: number | null
+          id?: string | null
+          job_id?: string | null
+          kind?: Database["public"]["Enums"]["evidence_kind"] | null
+          mime_type?: string | null
+          storage_path?: string | null
+          width?: number | null
+        }
+        Update: {
+          body?: string | null
+          caption?: string | null
+          captured_at?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          height?: number | null
+          id?: string | null
+          job_id?: string | null
+          kind?: Database["public"]["Enums"]["evidence_kind"] | null
+          mime_type?: string | null
+          storage_path?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_evidence_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "job_evidence_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "portal_job_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "job_evidence_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "job_evidence_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
+            referencedColumns: ["id", "client_id"]
+          },
+        ]
+      }
       portal_job_v: {
         Row: {
           client_id: string | null
@@ -2202,6 +2403,7 @@ export type Database = {
       approval_decision: "approved" | "declined"
       approval_kind: "quote" | "completion"
       contact_role: "primary" | "standard" | "viewer"
+      evidence_kind: "photo" | "document" | "note"
       job_priority: "low" | "normal" | "high" | "emergency"
       job_source: "client_portal" | "staff" | "phone" | "email"
       job_status:
@@ -2361,6 +2563,7 @@ export const Constants = {
       approval_decision: ["approved", "declined"],
       approval_kind: ["quote", "completion"],
       contact_role: ["primary", "standard", "viewer"],
+      evidence_kind: ["photo", "document", "note"],
       job_priority: ["low", "normal", "high", "emergency"],
       job_source: ["client_portal", "staff", "phone", "email"],
       job_status: [

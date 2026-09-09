@@ -20,6 +20,7 @@ export type Quote = Tables<'quotes'>
 export type QuoteLineItem = Tables<'quote_line_items'>
 export type CatalogItem = Tables<'catalog_items'>
 export type Approval = Tables<'approvals'>
+export type JobEvidence = Tables<'job_evidence'>
 
 export type PortalJob = Views<'portal_job_v'>
 export type PortalQuote = Views<'portal_quote_v'>
@@ -35,6 +36,7 @@ export type QuoteStatus = Enums<'quote_status'>
 export type LineKind = Enums<'line_kind'>
 export type ApprovalKind = Enums<'approval_kind'>
 export type ApprovalDecision = Enums<'approval_decision'>
+export type EvidenceKind = Enums<'evidence_kind'>
 
 /**
  * `jobs.number` is NOT NULL and assigned by a BEFORE INSERT trigger

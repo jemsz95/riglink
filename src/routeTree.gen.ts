@@ -29,6 +29,7 @@ import { Route as OrgSlugStaffJobsNewRouteImport } from './routes/$orgSlug._staf
 import { Route as OrgSlugStaffSitesIndexRouteImport } from './routes/$orgSlug._staff.sites.index'
 import { Route as PortalOrgSlugJobsJobIdRouteImport } from './routes/portal.$orgSlug.jobs.$jobId'
 import { Route as OrgSlugStaffJobsJobIdIndexRouteImport } from './routes/$orgSlug._staff.jobs.$jobId.index'
+import { Route as OrgSlugStaffJobsJobIdFieldRouteImport } from './routes/$orgSlug._staff.jobs.$jobId.field'
 import { Route as OrgSlugStaffJobsJobIdQuoteRouteImport } from './routes/$orgSlug._staff.jobs.$jobId.quote'
 
 const IndexRoute = IndexRouteImport.update({
@@ -132,6 +133,12 @@ const OrgSlugStaffJobsJobIdIndexRoute =
     path: '/jobs/$jobId/',
     getParentRoute: () => OrgSlugStaffRoute,
   } as any)
+const OrgSlugStaffJobsJobIdFieldRoute =
+  OrgSlugStaffJobsJobIdFieldRouteImport.update({
+    id: '/jobs/$jobId/field',
+    path: '/jobs/$jobId/field',
+    getParentRoute: () => OrgSlugStaffRoute,
+  } as any)
 const OrgSlugStaffJobsJobIdQuoteRoute =
   OrgSlugStaffJobsJobIdQuoteRouteImport.update({
     id: '/jobs/$jobId/quote',
@@ -157,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/clients/': typeof OrgSlugStaffClientsIndexRoute
   '/$orgSlug/jobs/': typeof OrgSlugStaffJobsIndexRoute
   '/$orgSlug/sites/': typeof OrgSlugStaffSitesIndexRoute
+  '/$orgSlug/jobs/$jobId/field': typeof OrgSlugStaffJobsJobIdFieldRoute
   '/$orgSlug/jobs/$jobId/quote': typeof OrgSlugStaffJobsJobIdQuoteRoute
   '/$orgSlug/jobs/$jobId/': typeof OrgSlugStaffJobsJobIdIndexRoute
 }
@@ -176,6 +184,7 @@ export interface FileRoutesByTo {
   '/$orgSlug/clients': typeof OrgSlugStaffClientsIndexRoute
   '/$orgSlug/jobs': typeof OrgSlugStaffJobsIndexRoute
   '/$orgSlug/sites': typeof OrgSlugStaffSitesIndexRoute
+  '/$orgSlug/jobs/$jobId/field': typeof OrgSlugStaffJobsJobIdFieldRoute
   '/$orgSlug/jobs/$jobId/quote': typeof OrgSlugStaffJobsJobIdQuoteRoute
   '/$orgSlug/jobs/$jobId': typeof OrgSlugStaffJobsJobIdIndexRoute
 }
@@ -200,6 +209,7 @@ export interface FileRoutesById {
   '/$orgSlug/_staff/clients/': typeof OrgSlugStaffClientsIndexRoute
   '/$orgSlug/_staff/jobs/': typeof OrgSlugStaffJobsIndexRoute
   '/$orgSlug/_staff/sites/': typeof OrgSlugStaffSitesIndexRoute
+  '/$orgSlug/_staff/jobs/$jobId/field': typeof OrgSlugStaffJobsJobIdFieldRoute
   '/$orgSlug/_staff/jobs/$jobId/quote': typeof OrgSlugStaffJobsJobIdQuoteRoute
   '/$orgSlug/_staff/jobs/$jobId/': typeof OrgSlugStaffJobsJobIdIndexRoute
 }
@@ -223,6 +233,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/clients/'
     | '/$orgSlug/jobs/'
     | '/$orgSlug/sites/'
+    | '/$orgSlug/jobs/$jobId/field'
     | '/$orgSlug/jobs/$jobId/quote'
     | '/$orgSlug/jobs/$jobId/'
   fileRoutesByTo: FileRoutesByTo
@@ -242,6 +253,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/clients'
     | '/$orgSlug/jobs'
     | '/$orgSlug/sites'
+    | '/$orgSlug/jobs/$jobId/field'
     | '/$orgSlug/jobs/$jobId/quote'
     | '/$orgSlug/jobs/$jobId'
   id:
@@ -265,6 +277,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/_staff/clients/'
     | '/$orgSlug/_staff/jobs/'
     | '/$orgSlug/_staff/sites/'
+    | '/$orgSlug/_staff/jobs/$jobId/field'
     | '/$orgSlug/_staff/jobs/$jobId/quote'
     | '/$orgSlug/_staff/jobs/$jobId/'
   fileRoutesById: FileRoutesById
@@ -420,6 +433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugStaffJobsJobIdIndexRouteImport
       parentRoute: typeof OrgSlugStaffRoute
     }
+    '/$orgSlug/_staff/jobs/$jobId/field': {
+      id: '/$orgSlug/_staff/jobs/$jobId/field'
+      path: '/jobs/$jobId/field'
+      fullPath: '/$orgSlug/jobs/$jobId/field'
+      preLoaderRoute: typeof OrgSlugStaffJobsJobIdFieldRouteImport
+      parentRoute: typeof OrgSlugStaffRoute
+    }
     '/$orgSlug/_staff/jobs/$jobId/quote': {
       id: '/$orgSlug/_staff/jobs/$jobId/quote'
       path: '/jobs/$jobId/quote'
@@ -437,6 +457,7 @@ interface OrgSlugStaffRouteChildren {
   OrgSlugStaffClientsIndexRoute: typeof OrgSlugStaffClientsIndexRoute
   OrgSlugStaffJobsIndexRoute: typeof OrgSlugStaffJobsIndexRoute
   OrgSlugStaffSitesIndexRoute: typeof OrgSlugStaffSitesIndexRoute
+  OrgSlugStaffJobsJobIdFieldRoute: typeof OrgSlugStaffJobsJobIdFieldRoute
   OrgSlugStaffJobsJobIdQuoteRoute: typeof OrgSlugStaffJobsJobIdQuoteRoute
   OrgSlugStaffJobsJobIdIndexRoute: typeof OrgSlugStaffJobsJobIdIndexRoute
 }
@@ -448,6 +469,7 @@ const OrgSlugStaffRouteChildren: OrgSlugStaffRouteChildren = {
   OrgSlugStaffClientsIndexRoute: OrgSlugStaffClientsIndexRoute,
   OrgSlugStaffJobsIndexRoute: OrgSlugStaffJobsIndexRoute,
   OrgSlugStaffSitesIndexRoute: OrgSlugStaffSitesIndexRoute,
+  OrgSlugStaffJobsJobIdFieldRoute: OrgSlugStaffJobsJobIdFieldRoute,
   OrgSlugStaffJobsJobIdQuoteRoute: OrgSlugStaffJobsJobIdQuoteRoute,
   OrgSlugStaffJobsJobIdIndexRoute: OrgSlugStaffJobsJobIdIndexRoute,
 }

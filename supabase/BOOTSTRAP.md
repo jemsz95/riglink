@@ -274,6 +274,45 @@ exercised in each direction:
 | Migrations in sync                          | `29 tracked`, exit 0                                      |
 | A migration in the repo but not applied     | names it, says `npm run db:push`, exit 1                  |
 
+### Field evidence (Phase 4)
+
+Verified against the live project, over the real HTTP API rather than only in
+SQL — the storage half cannot be tested any other way. Test accounts were
+given passwords, signed in through `/auth/v1/token`, and removed afterwards.
+
+| Check                                                 | Result                                                                                                            |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Buckets after `db push`                               | `branding` (public), `evidence` (private), `exports` (private) — `config push` does **not** create remote buckets |
+| Hook-minted claims in a real JWT (tech)               | `orgs: {<org>: "tech"}`, `epoch: 1`, `claims_version: 1`                                                          |
+| tus create + PATCH as a tech                          | `Location` returned, PATCH `204`                                                                                  |
+| Commit via PostgREST                                  | `201`                                                                                                             |
+| **Identical replay of the same commit**               | `409`, code `23505` — the idempotency contract, matching `isCommitAlreadyApplied`                                 |
+| Staff signs + fetches the object                      | sign `200`, fetch `200`, 344 bytes — the bytes uploaded                                                           |
+| Contact signs while `client_visible = false`          | `400 / NoSuchKey` — RLS hides the object, so signing is refused                                                   |
+| `bootstrap_session` + refresh as the contact          | `contacts_claimed: 1`; refreshed JWT carries `clients: [<id>]`, `epoch: 1`                                        |
+| Contact signs + fetches after `client_visible = true` | sign `200`, fetch `200`, 344 bytes                                                                                |
+| Contact after un-toggling                             | portal view `[]`, new sign `400 / NoSuchKey`                                                                      |
+| **A signed URL issued before un-toggling**            | still `200` — the bearer-token caveat is real, hence the 60s TTL                                                  |
+| Contact on the `job_evidence` base table              | only the visible photos; the internal note never appears                                                          |
+| `portal_job_evidence_v.captured_by`                   | `42703` — structurally absent                                                                                     |
+| Tech forging `captured_by` to a colleague             | refused `42501`                                                                                                   |
+| Note carrying a file / photo with no file             | both refused `23514` by the shape constraint                                                                      |
+| Evidence with a `client_id` that is not the job's     | refused `23503` by the composite FK                                                                               |
+| Tech deleting evidence rows                           | 0 rows affected                                                                                                   |
+| Tech deleting a storage object                        | `403 / AccessDenied`                                                                                              |
+| Owner deleting a storage object                       | `200`                                                                                                             |
+| Upload under another org's path prefix                | refused `42501` — the path is the tenant boundary                                                                 |
+| Direct `delete from storage.objects` in SQL           | refused by Supabase's own `storage.protect_delete()` trigger, which prevents orphaned objects — use the API       |
+
+Two notes on method, so the table is not read as more than it is. Several
+earlier SQL-level probes printed their results by raising an exception, which
+rolls the transaction back — including any `update` in the same call. The
+readings were correct at the time they were taken, but the changes did not
+persist, so anything that had to persist was re-checked over HTTP. And the
+Playwright/browser spec (`src/lib/offline/queue.browser.test.ts`) is written
+and wired into CI but **has never been run here**: this container is Talos with
+no package manager, so Chromium's `libglib-2.0.so.0` cannot be installed.
+
 ### Seeding auth users directly (for `seed.sql`)
 
 Inserting into `auth.users` by hand fails sign-in with a bare

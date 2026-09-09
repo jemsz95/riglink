@@ -149,6 +149,13 @@ file_size_limit = "25MiB"
 enabled = true
 
 # Image transformation API is available to Supabase Pro plan.
+#
+# EXPECTED PERMANENT DIFF: `config diff` reports
+# `storage.image_transformation.enabled` as remote_only, because the hosted
+# project has it on and this block is commented out here. Left commented
+# deliberately -- declaring it would make `supabase start` fail on a plan that
+# does not have the feature. It is remote_only rather than a conflict, so
+# `config push` does not touch it.
 # [storage.image_transformation]
 # enabled = true
 
