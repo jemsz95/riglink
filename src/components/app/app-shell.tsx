@@ -1,6 +1,7 @@
 import { Link, useParams } from '@tanstack/react-router'
 import {
   Briefcase,
+  Download,
   Building2,
   FileText,
   LayoutDashboard,
@@ -23,12 +24,8 @@ const NAV = [
   { to: '/$orgSlug/clients' as const, label: 'Clients', icon: Building2 },
   { to: '/$orgSlug/sites' as const, label: 'Sites', icon: MapPin },
   { to: '/$orgSlug' as const, label: 'Quotes', icon: FileText, disabled: true },
-  {
-    to: '/$orgSlug' as const,
-    label: 'Invoices',
-    icon: Receipt,
-    disabled: true,
-  },
+  { to: '/$orgSlug/invoices' as const, label: 'Invoices', icon: Receipt },
+  { to: '/$orgSlug/exports' as const, label: 'Exports', icon: Download },
 ]
 
 type NavTarget = (typeof NAV)[number]['to']

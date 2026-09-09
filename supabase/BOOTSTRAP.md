@@ -313,6 +313,106 @@ Playwright/browser spec (`src/lib/offline/queue.browser.test.ts`) is written
 and wired into CI but **has never been run here**: this container is Talos with
 no package manager, so Chromium's `libglib-2.0.so.0` cannot be installed.
 
+### Portal exposure audit
+
+`npm run check:portal-exposure` enumerates every column a client portal
+contact can read from a base table. Run against the live catalogue:
+
+| Result                                    |                                                                                           |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Tables a contact has RLS row access to    | 7 — `approvals`, `clients`, `job_evidence`, `jobs`, `quote_line_items`, `quotes`, `sites` |
+| Columns readable                          | 110, each signed off in `supabase/portal-exposure.json`                                   |
+| A column present but not in the inventory | fails, names it, exit 1                                                                   |
+| A whole new portal-readable table         | fails, names it as `(whole table)`, exit 1                                                |
+| An inventory entry that no longer exists  | fails, names it, exit 1                                                                   |
+
+The audit found one issue on its first run: **`job_status_events.reason`** —
+free text a dispatcher writes for colleagues, on a table a contact could read
+rows from. Nothing writes it yet and the portal reads that table not at all, so
+it was latent rather than live. Closed in `20260909210000` by dropping
+`job_status_events_portal_select`: the cheapest correct fix for a surface
+nothing consumes is not to expose it. Reinstating a portal timeline later means
+moving `reason` to a staff-only side table first, per the standard.
+
+Removing that policy also made an advisor allowlist entry stale
+(`multiple_permissive_policies` on `job_status_events`), which
+`check:advisors` failed on until it was removed — the two checks keeping each
+other honest.
+
+### Completion, sign-off and invoicing (Phase 5)
+
+Verified live, walking one job the whole way through.
+
+| Step                                       | Result                                                                                                                                                                                                                                                       |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Audit trail, end to end                    | `draft→requested/staff  requested→triaged/staff  triaged→quoted/staff  quoted→approved/client  approved→scheduled/staff  scheduled→in_progress/staff  in_progress→work_complete/staff  work_complete→client_accepted/client  client_accepted→invoiced/staff` |
+| Staff `UPDATE` to `client_accepted`        | refused: `illegal job transition work_complete -> client_accepted for actor staff`                                                                                                                                                                           |
+| `accept_completion` as the primary contact | approval row written, job → `client_accepted`, `job_status_changed: true`                                                                                                                                                                                    |
+| Completion snapshot                        | carries the job, the approved quote total (125570) and the 1 client-visible photo                                                                                                                                                                            |
+| Second sign-off on the same job            | refused `23514`                                                                                                                                                                                                                                              |
+| `create_invoice_from_job`                  | invoice #1 raised, 3 lines copied, `due_at` = +30 days from `invoice_terms_days`                                                                                                                                                                             |
+| **Invoice totals vs the approved quote**   | 116000 / 9570 / 125570 on both — exact match                                                                                                                                                                                                                 |
+| Calling `create_invoice_from_job` again    | returns the SAME draft; still 1 invoice                                                                                                                                                                                                                      |
+| `send_invoice`                             | status `sent`, `issued_at` set, job → `invoiced`                                                                                                                                                                                                             |
+| Line edit after issuing                    | refused `23514`                                                                                                                                                                                                                                              |
+| Sending twice                              | refused                                                                                                                                                                                                                                                      |
+| `DELETE` an issued invoice                 | 0 rows affected — issued invoices are voided, never removed                                                                                                                                                                                                  |
+| Contact reads `portal_invoice_v`           | the one `sent` invoice, 3 lines, total 125570                                                                                                                                                                                                                |
+| A `tech` reads invoices / lines / quotes   | 0 / 0 / 0, while still seeing the job                                                                                                                                                                                                                        |
+
+Two bugs were found by this run, both of which had applied cleanly and would
+have failed on first real use:
+
+1. **`app.decide_completion` read `v_contact.contact_id`.**
+   `app.portal_contact_for()` returns a `client_contacts` ROW, so the field is
+   `.id`. Declaring the variable as `record` instead of
+   `public.client_contacts` meant plpgsql resolved the name at execution and
+   the function would have failed at the moment a customer pressed Accept.
+   Fixed in `20260909222000`.
+
+2. **`app.decide_completion` never set `app.actor_kind`.** The status trigger
+   reads `current_setting('app.actor_kind', true)` and DEFAULTS TO `'staff'`,
+   so the sign-off was refused as a staff act — I wrote the transition check
+   and omitted the `set_config` that makes the transition legal. Fixed in
+   `20260909223000`. Worth noting the failure direction: the trigger blocked
+   the write rather than recording a staff-attributed sign-off, so the audit
+   trail could not be corrupted by this, only stopped.
+
+3. **`app.assign_invoice_number` passed an explicit `NULL` period.**
+   `number_sequences.period` is NOT NULL defaulting to `''`, and
+   `app.next_number` has a default for that argument — passing `null`
+   overrode it. Invoice numbers are non-periodic on purpose (`INV-1, INV-2`
+   continues across years; restarting each January makes two invoices share a
+   number). Fixed in `20260909224000`.
+
+### Leaked password protection: a finding I caused, and could not have fixed
+
+`auth_leaked_password_protection` appeared in the security advisor during this
+phase and then vanished — it correlated exactly with the test users I gave
+passwords to in order to exercise the HTTP API, and disappeared when those
+users were deleted. The app offers magic links only, so in normal operation
+there are no password users and this finding does not appear. It is therefore
+NOT in the allowlist: an entry matching nothing is exactly the rot
+`check:advisors` fails on.
+
+Worth recording anyway, because it would have been unfixable if it had been
+real:
+
+```
+PATCH /v1/projects/<ref>/config/auth  {"password_hibp_enabled": true}
+-> HTTP 402
+   "Configuring leaked password protection via HaveIBeenPwned.org is
+    available on Pro Plans and up."
+```
+
+It is also not expressible in `config.toml` with this CLI version — four
+candidate key spellings were probed and none produced a diff, and the CLI
+silently ignores unknown keys, so the absence of an error there means nothing.
+If passwords are ever offered in the UI, this becomes a real gap: enable it on
+Pro. Until then the mitigations are that the password grant is reachable but
+unused, `minimum_password_length = 12`, and `password_requirements` demands
+mixed case, digits and symbols.
+
 ### Seeding auth users directly (for `seed.sql`)
 
 Inserting into `auth.users` by hand fails sign-in with a bare

@@ -15,6 +15,10 @@ import {
   portalQuoteQuery,
 } from '@/features/portal/queries'
 import { PortalEvidence } from '@/features/evidence/portal-evidence'
+import { portalJobInvoicesQuery } from '@/features/invoices/queries'
+import { SignoffPanel } from '@/features/portal/signoff-panel'
+import { useDecideCompletion } from '@/features/portal/mutations-signoff'
+import { PortalInvoiceCard } from '@/features/invoices/portal-invoice-card'
 import { portalJobEvidenceQuery } from '@/features/evidence/queries'
 import { QuotePreview } from '@/features/quotes/quote-preview'
 import { formatDate, formatJobNumber } from '@/lib/format'
@@ -34,6 +38,9 @@ function PortalJobPage() {
   const quote = useQuery(portalQuoteQuery(client.client_id, jobId))
   const contacts = useQuery(portalContactsQuery())
   const evidence = useQuery(portalJobEvidenceQuery(client.client_id, jobId))
+  const invoices = useQuery(portalJobInvoicesQuery(client.client_id, jobId))
+  const acceptWork = useDecideCompletion('approve')
+  const declineWork = useDecideCompletion('decline')
   const myRole = contacts.data?.find(
     (contact) => contact.client_id === client.client_id,
   )?.role
@@ -147,6 +154,42 @@ function PortalJobPage() {
           timezone={data.portal_site_v?.timezone ?? null}
         />
       ) : null}
+
+      {/* Sign-off comes before the money: the client is being asked about the
+          work, and putting an invoice next to the question makes it look like
+          a payment demand rather than a review. */}
+      {data.status === 'work_complete' ? (
+        <SignoffPanel
+          pending={acceptWork.isPending || declineWork.isPending}
+          // The same expression the quote panel uses. Both are a UI gate
+          // only: app.portal_contact_for(..., require_approver => true)
+          // refuses a viewer inside the RPC, so a stale page cannot sign
+          // anything off.
+          canDecide={myRole === 'primary' || myRole === 'standard'}
+          onDecide={(decision, note) => {
+            const input = { jobId, clientId: client.client_id, note }
+            const mutation = decision === 'approve' ? acceptWork : declineWork
+            mutation.mutate(input, {
+              onSuccess: () =>
+                toast.success(
+                  decision === 'approve'
+                    ? 'Thank you -- the work is signed off.'
+                    : 'Thanks for letting us know. Someone will be in touch.',
+                ),
+              onError: (error) => toast.error(toUserMessage(error)),
+            })
+          }}
+        />
+      ) : null}
+
+      {invoices.data?.map((invoice) => (
+        <PortalInvoiceCard
+          key={invoice.id}
+          clientId={client.client_id}
+          invoice={invoice}
+          timezone={data.portal_site_v?.timezone ?? null}
+        />
+      ))}
 
       {quote.isPending ? (
         <Skeleton className="h-48 w-full" />

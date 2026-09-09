@@ -21,6 +21,7 @@ import { JobStatusBadge } from '@/components/domain/job-status-badge'
 import { StatusTimeline } from '@/components/domain/status-timeline'
 import { JobStatusActions } from '@/features/jobs/job-status-actions'
 import { canDispatch } from '@/features/orgs/permissions'
+import { InvoicePanel } from '@/features/invoices/invoice-panel'
 import { jobDetailQuery, jobStatusEventsQuery } from '@/features/jobs/queries'
 import {
   formatAddressLine,
@@ -218,6 +219,21 @@ function JobDetailPage() {
             </dl>
           </CardContent>
         </Card>
+
+        {/* Dispatch roles only. A tech reads nothing priced, so rendering the
+            panel for them would show an empty box where money should be. */}
+        {canDispatch(role) ? (
+          <Card>
+            <CardContent className="pt-6">
+              <InvoicePanel
+                orgId={org.id}
+                jobId={jobId}
+                jobStatus={data.status}
+                timezone={timezone}
+              />
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </div>
   )

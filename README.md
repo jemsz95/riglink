@@ -193,34 +193,64 @@ and deletes what is absent, which retired a client-side `removedIds` diff that
 could not see a line added and deleted within one session and left it behind as
 an orphan.
 
-**The portal reads views only, and staff-only columns are in side tables.**
-RLS filters rows, not columns, and Supabase has a single `authenticated` role
-— so a policy letting a contact read their own job rows let them read every
-column of those rows. `jobs.internal_notes`, `clients.notes`,
-`sites.access_notes` and `quotes.internal_note` were all reachable at
-`/rest/v1/jobs?select=*` with a contact's own JWT, even though the portal
-application only ever read `portal_job_v`. Nothing compelled it to.
+### Row-shaped vs field-shaped sensitivity — the standard
 
-Those four columns now live in `job_internal_notes`, `client_internal_notes`,
-`site_access_notes` and `quote_internal_notes` — staff-only tables with a
-composite `(parent_id, org_id)` FK, so a note cannot even be attached across
-tenants. Asking for the old columns returns `42703`: they are structurally
-absent, which is the claim this file used to make before it was true. The
-portal keeps its base-table row policies and its views are back to
-`security_invoker = on`, so the read path has two independent locks — an RLS
-row filter _and_ a column projection — and a mistake in either alone leaks
-nothing.
+One constraint drives every decision on the client-facing surface, and it does
+not bend: **RLS filters rows, not columns**, and Supabase has a single
+`authenticated` role. So if an audience has RLS row access to a table, it can
+read _every column_ of the rows it can see. A view cannot fix that — the base
+table is still there, and a `security_invoker` view checks the caller's own
+grants on it, so you cannot close the table underneath without breaking the
+view for everyone.
 
-`jobs.lead_tech_id` deliberately stays on `jobs`. It is a bare UUID with no
-name or email attached, the list renders it and the tech-update policy keys off
-it, so hiding it would contort the assignment model for almost no value. A
-contact learning that some uuid is assigned is the accepted residual.
+That leaves exactly two patterns, and which one applies is decided by the
+**shape of the sensitivity**, not by taste:
 
-**The standing cost is discipline.** A new staff-only column on `jobs`,
-`clients`, `sites` or `quotes` will leak to contacts exactly as those four did,
-and no lint will say so. Those four tables are the ones to think twice about.
+| The sensitivity is…                                               | Pattern                                                                                                                              | Examples                                                                                                                                         |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Row-shaped** — the whole row is either shareable or it is not   | A discriminator column on the row, enforced by the RLS policy. The view is then only a column projection, not the security boundary. | `job_evidence.client_visible`, `jobs.status <> 'draft'`, `quotes.status <> 'draft'`, `quote_line_items` hidden while its parent quote is a draft |
+| **Field-shaped** — the row must be visible but one field must not | The field moves to a staff-only side table with its own policies.                                                                    | `job_internal_notes`, `client_internal_notes`, `site_access_notes`, `quote_internal_notes`                                                       |
 
-**Writing a parent and its note is one transaction.** `create_job` and
+These are not two answers to the same question. A photo is either shown to the
+client or it is not — there is no half-visible photo, so `client_visible` is
+the right model and a side table would be absurd. A job, by contrast, _must_ be
+visible to the client who requested it while `internal_notes` must not, and no
+row predicate can express that, because the row has to be returned.
+
+So the decision procedure for any new staff-only data is one question: **can
+the whole row be hidden?** If yes, a discriminator. If no, a side table.
+
+**The one accepted exception.** An opaque identifier carrying no personal or
+commercial information may stay on a client-visible row rather than moving:
+`jobs.lead_tech_id`, `jobs.created_by`, `job_evidence.captured_by`,
+`clients.created_by`, `sites.created_by`, `quotes.created_by`,
+`quote_line_items.catalog_item_id`. The client learns that _someone_ is
+assigned, and nothing else — no name, no email, no amount, no note, no
+decision. Anything carrying one of those does not qualify and takes the side
+table. Every one of these is listed in `supabase/portal-exposure.json` with
+that reasoning attached.
+
+**What we rejected, and why.** An owner-rights (`security_invoker = off`)
+portal view with the tenant predicate inside it also closes the leak, in one
+migration, with no schema surgery — and we shipped it briefly. It was reverted
+because it reduces the portal read path to a single lock: the view's `WHERE`
+clause, with no RLS beneath it, so one bad predicate is a cross-tenant leak
+rather than a defect caught by a second mechanism. It also raises
+`0010_security_definer_view`, which splinter's source emits at **ERROR** (the
+docs page saying WARN is stale) and which has no suppression mechanism of any
+kind.
+
+**The standard is enforced, not just documented.** `npm run
+check:portal-exposure` enumerates every column a portal contact can read —
+deriving the table list from the catalogue, so adding a portal policy to a new
+table brings it under the check automatically — and fails on anything not
+signed off in `supabase/portal-exposure.json`, in both directions. Discipline
+was the known weakness of the side-table pattern; this is the answer to it.
+That check is also what found `job_status_events.reason` — free text a
+dispatcher writes for colleagues, on a table a contact could read rows from,
+one keystroke away from being a live leak.
+
+**Writing a parent and its note is one transaction.****Writing a parent and its note is one transaction.** `create_job` and
 `create_site` exist because a job and its internal note are now two
 statements, and two statements from a browser are two PostgREST requests and
 therefore two transactions. Both are `SECURITY INVOKER` and derive `org_id`
@@ -284,6 +314,46 @@ and the index matches that expression.
 saying "valve seized, need the 24mm" ahead of a 3MB photo of the valve,
 because one bar of signal should deliver the message even if the photo does not
 get through that window.
+
+**Sign-off is structurally a client act.** `job_status_transitions` registers
+`work_complete -> client_accepted` with `actor_kind = 'client'`, and the status
+trigger checks the actor against that table — so a contractor cannot mark
+their own work as accepted by the customer, in the same way they cannot
+approve their own quote. Verified: a staff `UPDATE` to `client_accepted` is
+refused with `illegal job transition work_complete -> client_accepted for
+actor staff`.
+
+**Declining completion moves nothing, on purpose.** Accepting travels the
+client edge; rejecting records an `approvals` row with
+`job_status_changed: false` and leaves the job where it is. There is no client
+edge out of `work_complete` for a rejection, because a customer saying "this
+isn't finished" is information for a dispatcher, not a unilateral reopening of
+the job — someone has to decide whether to send a van or pick up the phone.
+
+**Invoice arithmetic is copied from quotes, not re-derived.**
+`invoice_line_items` uses byte-identical generated-column expressions to
+`quote_line_items` — `round(quantity * unit_price_cents)` and
+`round(round(quantity * unit_price_cents) * tax_rate)`. Not similar,
+identical. An invoice that disagreed with the approved quote by one cent is a
+dispute, and the cheapest way to guarantee agreement is the same SQL over the
+same exact-decimal type. Verified on a live three-line mixed quote including a
+negative discount: invoice and quote both 116000 / 9570 / 125570.
+
+**The CSV export is where responsibility for money ends,** so it is pure and
+heavily tested (30 tests). Three things it exists to get right: money never
+touches a float (`minorUnitsToDecimal` splits the integer rather than dividing
+by 100, and _throws_ on a non-integer rather than rounding it); a text field
+that would be read as a formula is neutralised, because a client named
+`=HYPERLINK(...)` is a live attack on the bookkeeper's machine delivered by
+our own export; and **numeric fields are deliberately not neutralised**,
+because a credit line legitimately begins with `-` and prefixing it would
+corrupt every discount in the ledger. That distinction is why columns carry a
+type. Currency minor units come from the currency, not a constant — JPY has
+none and BHD has three.
+
+`csv.fixtures.ts` holds a real invoice copied out of the database, so the
+export is asserted against numbers Postgres generated rather than against my
+arithmetic — the same technique as `totals.fixtures.ts`.
 
 **Money is integer cents everywhere** — database, UI, CSV export. Never a
 float. One shared `computeTotals` serves quotes, invoices and the accounting

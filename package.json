@@ -29,7 +29,8 @@
     "config:push": "supabase config push --project-ref nhrtxcdmnjvewvctfwao",
     "db:migrations": "supabase migration list --project-ref nhrtxcdmnjvewvctfwao",
     "deploy": "supabase db push --project-ref nhrtxcdmnjvewvctfwao && supabase config push --project-ref nhrtxcdmnjvewvctfwao",
-    "check:advisors": "node scripts/check-advisors.mjs"
+    "check:advisors": "node scripts/check-advisors.mjs",
+    "check:portal-exposure": "node scripts/check-portal-exposure.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

@@ -1,0 +1,26 @@
+-- ============================================================================
+-- Portal contacts lose row access to `job_status_events`.
+--
+-- Found by auditing the actual exposure surface rather than reasoning about
+-- it: every column of every table a contact has RLS row access to. That audit
+-- turned up `job_status_events.reason` -- free text a dispatcher writes for
+-- colleagues ("cancelled, customer's cheque bounced") on a table a contact can
+-- read rows from. RLS has no column dimension, so the policy that let a client
+-- see their job's history let them read that column too.
+--
+-- Nothing writes `reason` yet and nothing in the portal reads this table at
+-- all, so this is a latent leak rather than a live one -- which is the best
+-- time to close it.
+--
+-- Dropping the policy rather than moving the column, because the cheapest
+-- correct fix for a surface nothing consumes is not to expose it. When a
+-- portal timeline is actually built it gets the same treatment as everything
+-- else on that surface: a projection view over an RLS-filtered base table,
+-- with `reason` moved to a staff-only side table first.
+--
+-- The client already sees the state of their job (`portal_job_v.status`) and
+-- the decisions they themselves made (`approvals`). What they lose here is the
+-- staff-side narration of how it got there, which was never theirs.
+-- ============================================================================
+
+drop policy job_status_events_portal_select on public.job_status_events;

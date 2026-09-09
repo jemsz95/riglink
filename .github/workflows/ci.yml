@@ -63,6 +63,15 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      # Enumerates every column a client portal contact can read from a base
+      # table and fails on any that is not signed off in
+      # supabase/portal-exposure.json. RLS filters rows, not columns, so this
+      # is the only automated thing standing between a new staff-only column
+      # and a customer reading it.
+      - run: npm run check:portal-exposure
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
 
   migrations:
     name: Migrations match the deployed schema

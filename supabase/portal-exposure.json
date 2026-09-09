@@ -1,0 +1,204 @@
+{
+  "$comment": [
+    "Every column a CLIENT PORTAL CONTACT can read from a base table, with why.",
+    "RLS filters rows, not columns, and Supabase has one `authenticated` role --",
+    "so any column on a table a contact has row access to is visible to them.",
+    "Checked by `npm run check:portal-exposure`. A new column fails the check",
+    "until it is either moved to a staff-only side table or listed here with a",
+    "reason. See README, 'Row-shaped vs field-shaped sensitivity'."
+  ],
+  "tables": {
+    "approvals": {
+      "why_readable": "Their own decision on a quote -- the record of what they agreed to.",
+      "columns": {
+        "id": "Row identifier.",
+        "org_id": "The contractor; already known from the portal URL.",
+        "job_id": "Their own job.",
+        "client_id": "Their own client account.",
+        "quote_id": "Their own quote.",
+        "kind": "Type of the row.",
+        "decision": "Their own decision.",
+        "actor_contact_id": "Their own contact id.",
+        "actor_user_id": "Their own user id.",
+        "note": "The note they themselves wrote when deciding.",
+        "snapshot": "What they were shown when they approved, built by app.quote_snapshot(), which selects only client-facing fields.",
+        "created_at": "When the record was created."
+      }
+    },
+    "clients": {
+      "why_readable": "Their own client record -- the account the portal is showing them.",
+      "columns": {
+        "id": "Row identifier.",
+        "org_id": "The contractor; already known from the portal URL.",
+        "name": "Their own name.",
+        "billing_email": "Their own billing email.",
+        "phone": "Their own phone number.",
+        "billing_address": "Their own billing address.",
+        "external_ref": "Their own reference in the contractor's system; shown on documents anyway.",
+        "archived_at": "Whether their own account is archived.",
+        "created_at": "When the record was created.",
+        "updated_at": "When it last changed.",
+        "created_by": "ACCEPTED RESIDUAL: opaque staff uuid, same criterion as lead_tech_id."
+      }
+    },
+    "invoice_line_items": {
+      "why_readable": "The lines of an invoice issued to them; hidden while the invoice is a draft.",
+      "columns": {
+        "id": "Row identifier.",
+        "org_id": "The contractor; already known.",
+        "invoice_id": "Their own invoice.",
+        "client_id": "Their own client account.",
+        "position": "Line order on their own invoice.",
+        "kind": "Line type on their own invoice.",
+        "catalog_item_id": "ACCEPTED RESIDUAL: opaque uuid into the contractor's catalogue; carries no price or name on its own.",
+        "description": "What they are being charged for.",
+        "unit": "Unit on their own invoice line.",
+        "quantity": "Quantity they are being charged for.",
+        "unit_price_cents": "The rate they are being charged.",
+        "tax_rate": "Tax rate applied to their line.",
+        "line_total_cents": "Their line total.",
+        "line_tax_cents": "Their line tax.",
+        "created_at": "When the line was created.",
+        "updated_at": "When it last changed."
+      }
+    },
+    "invoices": {
+      "why_readable": "An invoice issued to them. Drafts are excluded by the policy -- a draft is staff working out what to charge.",
+      "columns": {
+        "id": "Row identifier.",
+        "org_id": "The contractor; already known from the portal URL.",
+        "job_id": "Their own job.",
+        "client_id": "Their own client account.",
+        "quote_id": "The quote they themselves approved.",
+        "number": "The invoice number they will pay against.",
+        "status": "Whether their invoice is outstanding, paid or void. Drafts are excluded by the policy.",
+        "currency": "Currency of their own invoice.",
+        "subtotal_cents": "Their own invoice subtotal.",
+        "tax_cents": "Their own invoice tax.",
+        "total_cents": "What they owe.",
+        "notes": "Client-facing notes, copied from the quote. There is deliberately NO internal note column on this table -- per the standard it would belong in invoice_internal_notes.",
+        "terms": "Client-facing payment terms.",
+        "issued_at": "When the invoice was issued to them.",
+        "due_at": "When payment is due.",
+        "paid_at": "When their payment was recorded.",
+        "voided_at": "When the invoice was cancelled -- useful to them, not hidden from them.",
+        "payment_ref": "The reference the office recorded for their payment, so they can match it to their own bank. Hiding it generates \"we already paid that\" calls.",
+        "created_at": "When the record was created.",
+        "updated_at": "When it last changed.",
+        "created_by": "ACCEPTED RESIDUAL: opaque staff uuid, same criterion as jobs.lead_tech_id -- no name, no email, no amount."
+      }
+    },
+    "job_evidence": {
+      "why_readable": "Photos and notes a dispatcher chose to share (client_visible), on a non-draft job.",
+      "columns": {
+        "id": "Row identifier.",
+        "org_id": "The contractor; already known from the portal URL.",
+        "job_id": "Their own job.",
+        "client_id": "Their own client account.",
+        "kind": "Type of the row.",
+        "storage_path": "Needed to sign a URL for the photo they are allowed to see.",
+        "mime_type": "Type of a photo they can see.",
+        "byte_size": "Size of a photo they can already download.",
+        "width": "Dimensions of a photo they can see.",
+        "height": "Dimensions of a photo they can see.",
+        "caption": "The caption -- only on rows marked client_visible.",
+        "body": "The note text -- only on rows marked client_visible.",
+        "client_visible": "Always true for any row they can read, so it reveals nothing.",
+        "captured_at": "When the photo or note was taken.",
+        "captured_by": "ACCEPTED RESIDUAL: opaque staff uuid, same criterion as lead_tech_id. A client sees that someone took the photo, not who.",
+        "client_ref": "The uploader's idempotency key. An opaque uuid.",
+        "created_at": "When the record was created.",
+        "updated_at": "When it last changed."
+      }
+    },
+    "jobs": {
+      "why_readable": "The client requested this job and must be able to see it. Draft jobs are excluded by the policy.",
+      "columns": {
+        "id": "Row identifier.",
+        "org_id": "The contractor they are dealing with; already known from the portal URL.",
+        "client_id": "Their own client account.",
+        "site_id": "Their own site.",
+        "number": "The reference they quote on the phone.",
+        "title": "Their own job title.",
+        "description": "What they asked for.",
+        "status": "The state of their own job or quote.",
+        "priority": "Priority of their own job.",
+        "source": "How the request arrived.",
+        "requested_by_contact_id": "Their own contact who raised the request.",
+        "lead_tech_id": "ACCEPTED RESIDUAL: an opaque staff uuid with no name or email attached. The client learns that someone is assigned and nothing else. Left on `jobs` because the list renders it and jobs_tech_update keys off it; moving it would contort the assignment model to hide almost nothing.",
+        "requested_for": "The date they asked for.",
+        "scheduled_start": "When work is booked in.",
+        "scheduled_end": "When work is booked to finish.",
+        "completed_at": "When work finished.",
+        "closed_at": "When their job was closed.",
+        "created_at": "When the record was created.",
+        "updated_at": "When it last changed.",
+        "created_by": "ACCEPTED RESIDUAL: opaque staff uuid, same criterion as lead_tech_id."
+      }
+    },
+    "quote_line_items": {
+      "why_readable": "The lines of a quote sent to them; hidden while the parent quote is a draft.",
+      "columns": {
+        "id": "Row identifier.",
+        "org_id": "The contractor; already known from the portal URL.",
+        "quote_id": "Their own quote.",
+        "client_id": "Their own client account.",
+        "position": "Line order on their own quote.",
+        "kind": "Type of the row.",
+        "catalog_item_id": "ACCEPTED RESIDUAL: opaque uuid into the contractor's catalogue. Carries no price, name or description on its own.",
+        "description": "What they asked for.",
+        "unit": "Unit on their own quote line.",
+        "quantity": "Quantity on their own quote line.",
+        "unit_price_cents": "Price they were quoted.",
+        "tax_rate": "Tax rate they were quoted.",
+        "line_total_cents": "Line total they were quoted.",
+        "line_tax_cents": "Line tax they were quoted.",
+        "created_at": "When the record was created.",
+        "updated_at": "When it last changed."
+      }
+    },
+    "quotes": {
+      "why_readable": "A quote sent to them. Drafts are excluded by the policy.",
+      "columns": {
+        "id": "Row identifier.",
+        "org_id": "The contractor; already known from the portal URL.",
+        "job_id": "Their own job.",
+        "client_id": "Their own client account.",
+        "number": "The reference they quote on the phone.",
+        "status": "The state of their own job or quote.",
+        "currency": "Currency of their own quote.",
+        "subtotal_cents": "Their own quote total.",
+        "tax_cents": "Their own quote tax.",
+        "total_cents": "Their own quote total.",
+        "notes": "Client-facing notes on the quote. The staff-only note lives in quote_internal_notes.",
+        "terms": "Client-facing terms.",
+        "valid_until": "When their quote expires.",
+        "sent_at": "When the quote was sent to them.",
+        "locked_at": "When the quote was frozen for sending. A timestamp about their own document.",
+        "decided_at": "When they decided.",
+        "created_at": "When the record was created.",
+        "updated_at": "When it last changed.",
+        "created_by": "ACCEPTED RESIDUAL: opaque staff uuid."
+      }
+    },
+    "sites": {
+      "why_readable": "Their own sites, so a request can name one.",
+      "columns": {
+        "id": "Row identifier.",
+        "org_id": "The contractor; already known from the portal URL.",
+        "client_id": "Their own client account.",
+        "name": "Their own name.",
+        "address": "Their own site address.",
+        "lat": "Their own site location.",
+        "lng": "Their own site location.",
+        "timezone": "Their own site timezone, used to render dates correctly.",
+        "site_contact_name": "Their own on-site contact.",
+        "site_contact_phone": "Their own on-site contact.",
+        "archived_at": "Whether their own site is archived.",
+        "created_at": "When the record was created.",
+        "updated_at": "When it last changed.",
+        "created_by": "ACCEPTED RESIDUAL: opaque staff uuid."
+      }
+    }
+  }
+}

@@ -397,6 +397,270 @@ export type Database = {
           },
         ]
       }
+      invoice_line_items: {
+        Row: {
+          catalog_item_id: string | null
+          client_id: string
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          kind: Database["public"]["Enums"]["line_kind"]
+          line_tax_cents: number | null
+          line_total_cents: number | null
+          org_id: string
+          position: number
+          quantity: number
+          tax_rate: number
+          unit: string
+          unit_price_cents: number
+          updated_at: string
+        }
+        Insert: {
+          catalog_item_id?: string | null
+          client_id: string
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          kind?: Database["public"]["Enums"]["line_kind"]
+          line_tax_cents?: number | null
+          line_total_cents?: number | null
+          org_id: string
+          position: number
+          quantity: number
+          tax_rate?: number
+          unit?: string
+          unit_price_cents: number
+          updated_at?: string
+        }
+        Update: {
+          catalog_item_id?: string | null
+          client_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          kind?: Database["public"]["Enums"]["line_kind"]
+          line_tax_cents?: number | null
+          line_total_cents?: number | null
+          org_id?: string
+          position?: number
+          quantity?: number
+          tax_rate?: number
+          unit?: string
+          unit_price_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_catalog_fk"
+            columns: ["catalog_item_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_invoice_client_fk"
+            columns: ["invoice_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_invoice_client_fk"
+            columns: ["invoice_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "portal_invoice_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_invoice_fk"
+            columns: ["invoice_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_invoice_fk"
+            columns: ["invoice_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "portal_invoice_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          due_at: string | null
+          id: string
+          issued_at: string | null
+          job_id: string
+          notes: string | null
+          number: number
+          org_id: string
+          paid_at: string | null
+          payment_ref: string | null
+          quote_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          subtotal_cents: number
+          tax_cents: number
+          terms: string | null
+          total_cents: number
+          updated_at: string
+          voided_at: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          due_at?: string | null
+          id?: string
+          issued_at?: string | null
+          job_id: string
+          notes?: string | null
+          number: number
+          org_id: string
+          paid_at?: string | null
+          payment_ref?: string | null
+          quote_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal_cents?: number
+          tax_cents?: number
+          terms?: string | null
+          total_cents?: number
+          updated_at?: string
+          voided_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          due_at?: string | null
+          id?: string
+          issued_at?: string | null
+          job_id?: string
+          notes?: string | null
+          number?: number
+          org_id?: string
+          paid_at?: string | null
+          payment_ref?: string | null
+          quote_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal_cents?: number
+          tax_cents?: number
+          terms?: string | null
+          total_cents?: number
+          updated_at?: string
+          voided_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "invoices_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "portal_job_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "invoices_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "invoices_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "invoices_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "invoices_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "portal_job_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "invoices_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "invoices_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_quote_fk"
+            columns: ["quote_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "portal_quote_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "invoices_quote_fk"
+            columns: ["quote_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "invoices_quote_fk"
+            columns: ["quote_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_quote_v"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
       job_evidence: {
         Row: {
           body: string | null
@@ -1365,6 +1629,214 @@ export type Database = {
       }
     }
     Views: {
+      portal_invoice_line_v: {
+        Row: {
+          client_id: string | null
+          description: string | null
+          id: string | null
+          invoice_id: string | null
+          kind: Database["public"]["Enums"]["line_kind"] | null
+          line_tax_cents: number | null
+          line_total_cents: number | null
+          org_id: string | null
+          position: number | null
+          quantity: number | null
+          tax_rate: number | null
+          unit: string | null
+          unit_price_cents: number | null
+        }
+        Insert: {
+          client_id?: string | null
+          description?: string | null
+          id?: string | null
+          invoice_id?: string | null
+          kind?: Database["public"]["Enums"]["line_kind"] | null
+          line_tax_cents?: number | null
+          line_total_cents?: number | null
+          org_id?: string | null
+          position?: number | null
+          quantity?: number | null
+          tax_rate?: number | null
+          unit?: string | null
+          unit_price_cents?: number | null
+        }
+        Update: {
+          client_id?: string | null
+          description?: string | null
+          id?: string | null
+          invoice_id?: string | null
+          kind?: Database["public"]["Enums"]["line_kind"] | null
+          line_tax_cents?: number | null
+          line_total_cents?: number | null
+          org_id?: string | null
+          position?: number | null
+          quantity?: number | null
+          tax_rate?: number | null
+          unit?: string | null
+          unit_price_cents?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_invoice_client_fk"
+            columns: ["invoice_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_invoice_client_fk"
+            columns: ["invoice_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "portal_invoice_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_invoice_fk"
+            columns: ["invoice_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_invoice_fk"
+            columns: ["invoice_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "portal_invoice_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_invoice_v: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          currency: string | null
+          due_at: string | null
+          id: string | null
+          issued_at: string | null
+          job_id: string | null
+          notes: string | null
+          number: number | null
+          org_id: string | null
+          paid_at: string | null
+          payment_ref: string | null
+          status: Database["public"]["Enums"]["invoice_status"] | null
+          subtotal_cents: number | null
+          tax_cents: number | null
+          terms: string | null
+          total_cents: number | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          due_at?: string | null
+          id?: string | null
+          issued_at?: string | null
+          job_id?: string | null
+          notes?: string | null
+          number?: number | null
+          org_id?: string | null
+          paid_at?: string | null
+          payment_ref?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"] | null
+          subtotal_cents?: number | null
+          tax_cents?: number | null
+          terms?: string | null
+          total_cents?: number | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          due_at?: string | null
+          id?: string | null
+          issued_at?: string | null
+          job_id?: string | null
+          notes?: string | null
+          number?: number | null
+          org_id?: string | null
+          paid_at?: string | null
+          payment_ref?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"] | null
+          subtotal_cents?: number | null
+          tax_cents?: number | null
+          terms?: string | null
+          total_cents?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "invoices_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "portal_job_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "invoices_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "invoices_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "invoices_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "invoices_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "portal_job_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "invoices_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "invoices_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portal_job_evidence_v: {
         Row: {
           body: string | null
@@ -2161,11 +2633,47 @@ export type Database = {
       }
     }
     Functions: {
+      accept_completion: {
+        Args: { p_job_id: string; p_note?: string }
+        Returns: Json
+      }
       approve_quote: {
         Args: { p_note?: string; p_quote_id: string }
         Returns: Json
       }
       bootstrap_session: { Args: never; Returns: Json }
+      create_invoice_from_job: {
+        Args: { p_job_id: string }
+        Returns: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          due_at: string | null
+          id: string
+          issued_at: string | null
+          job_id: string
+          notes: string | null
+          number: number
+          org_id: string
+          paid_at: string | null
+          payment_ref: string | null
+          quote_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          subtotal_cents: number
+          tax_cents: number
+          terms: string | null
+          total_cents: number
+          updated_at: string
+          voided_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_job: {
         Args: {
           p_client_id: string
@@ -2262,6 +2770,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      decline_completion: {
+        Args: { p_job_id: string; p_note?: string }
+        Returns: Json
+      }
       decline_quote: {
         Args: { p_note?: string; p_quote_id: string }
         Returns: Json
@@ -2293,6 +2805,38 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "quotes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      send_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          due_at: string | null
+          id: string
+          issued_at: string | null
+          job_id: string
+          notes: string | null
+          number: number
+          org_id: string
+          paid_at: string | null
+          payment_ref: string | null
+          quote_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          subtotal_cents: number
+          tax_cents: number
+          terms: string | null
+          total_cents: number
+          updated_at: string
+          voided_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -2404,6 +2948,7 @@ export type Database = {
       approval_kind: "quote" | "completion"
       contact_role: "primary" | "standard" | "viewer"
       evidence_kind: "photo" | "document" | "note"
+      invoice_status: "draft" | "sent" | "paid" | "void"
       job_priority: "low" | "normal" | "high" | "emergency"
       job_source: "client_portal" | "staff" | "phone" | "email"
       job_status:
@@ -2564,6 +3109,7 @@ export const Constants = {
       approval_kind: ["quote", "completion"],
       contact_role: ["primary", "standard", "viewer"],
       evidence_kind: ["photo", "document", "note"],
+      invoice_status: ["draft", "sent", "paid", "void"],
       job_priority: ["low", "normal", "high", "emergency"],
       job_source: ["client_portal", "staff", "phone", "email"],
       job_status: [
