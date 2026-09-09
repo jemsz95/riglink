@@ -2,7 +2,12 @@ import { Link } from '@tanstack/react-router'
 import { Building2, CalendarClock, MapPin } from 'lucide-react'
 import { JobPriorityBadge } from './job-priority-badge'
 import { JobStatusBadge } from './job-status-badge'
-import { formatDate, formatJobNumber, formatRelative } from '@/lib/format'
+import {
+  formatDate,
+  formatJobNumber,
+  formatRelative,
+  orDash,
+} from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { JobListRow } from '@/features/jobs/queries'
 
@@ -45,13 +50,13 @@ export function JobCard({ job, orgSlug, className }: JobCardProps) {
         <div className="flex items-center gap-1.5">
           <dt className="sr-only">Client</dt>
           <Building2 className="size-3.5 shrink-0" aria-hidden />
-          <dd className="truncate">{job.clients.name}</dd>
+          <dd className="truncate">{orDash(job.client_name)}</dd>
         </div>
-        {job.sites ? (
+        {job.site_name ? (
           <div className="flex items-center gap-1.5">
             <dt className="sr-only">Site</dt>
             <MapPin className="size-3.5 shrink-0" aria-hidden />
-            <dd className="truncate">{job.sites.name}</dd>
+            <dd className="truncate">{job.site_name}</dd>
           </div>
         ) : null}
         {job.scheduled_start ? (
@@ -60,7 +65,7 @@ export function JobCard({ job, orgSlug, className }: JobCardProps) {
             <CalendarClock className="size-3.5 shrink-0" aria-hidden />
             {/* The SITE's timezone, not the org's or the browser's -- a job two
                 zones away otherwise shows the wrong day to the tech in it. */}
-            <dd>{formatDate(job.scheduled_start, job.sites?.timezone)}</dd>
+            <dd>{formatDate(job.scheduled_start, job.site_timezone)}</dd>
           </div>
         ) : null}
       </dl>

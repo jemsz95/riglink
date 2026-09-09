@@ -2,7 +2,7 @@ import { queryOptions } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { withStaleClaimsRetry } from '@/lib/auth/refresh-on-stale-claims'
 import { catalogKeys, quoteKeys } from '@/features/jobs/keys'
-import { escapeOrFilterTerm } from '@/features/jobs/queries'
+import { toSearchPattern } from '@/features/jobs/queries'
 import type { QueryData } from '@supabase/supabase-js'
 import type { Approval, CatalogItem, Quote } from '@/lib/supabase/db'
 import type { PrintableLine, PrintableQuote } from './quote-preview'
@@ -17,6 +17,16 @@ const LINE_COLUMNS = `
 ` as const
 
 /**
+ * A quote as staff read it: the row plus the staff-only internal note.
+ *
+ * `internal_note` moved to `quote_internal_notes`, whose policy is
+ * dispatch-only, so for a tech the join yields null rather than the read
+ * failing. `staff_quote_v` is `security_invoker = on`, so both halves are
+ * still the caller's own policies.
+ */
+export type StaffQuote = Quote & { internal_note: string | null }
+
+/**
  * The quotes on a job, newest first.
  *
  * A job can have several: a superseded quote stays on the record because the
@@ -26,15 +36,17 @@ export const jobQuotesQuery = (orgId: string, jobId: string) =>
   queryOptions({
     queryKey: quoteKeys.forJob(orgId, jobId),
     queryFn: () =>
-      withStaleClaimsRetry(async (): Promise<Array<Quote>> => {
+      withStaleClaimsRetry(async (): Promise<Array<StaffQuote>> => {
         const { data, error } = await supabase
-          .from('quotes')
+          .from('staff_quote_v')
           .select('*')
           .eq('org_id', orgId)
           .eq('job_id', jobId)
           .order('created_at', { ascending: false })
         if (error) throw error
-        return data
+        // Every view column types as nullable; the quote half is NOT NULL on
+        // the base table and `internal_note` is genuinely nullable.
+        return data as unknown as Array<StaffQuote>
       }),
   })
 
@@ -42,15 +54,20 @@ export const quoteDetailQuery = (orgId: string, quoteId: string) =>
   queryOptions({
     queryKey: quoteKeys.detail(orgId, quoteId),
     queryFn: () =>
-      withStaleClaimsRetry(async (): Promise<Quote> => {
+      withStaleClaimsRetry(async (): Promise<StaffQuote> => {
         const { data, error } = await supabase
-          .from('quotes')
+          .from('staff_quote_v')
           .select('*')
           .eq('org_id', orgId)
           .eq('id', quoteId)
           .single()
         if (error) throw error
-        return data
+        if (data.id == null || data.number == null || data.status == null) {
+          throw new Error(
+            'staff_quote_v returned a row missing a NOT NULL quote column; the view and the base table have diverged',
+          )
+        }
+        return data as unknown as StaffQuote
       }),
   })
 
@@ -111,10 +128,11 @@ export const catalogQuery = (orgId: string, search: string) =>
           .eq('active', true)
 
         if (search) {
-          const term = escapeOrFilterTerm(search)
-          query = query.or(
-            `name.ilike."%${term}%",sku.ilike."%${term}%",description.ilike."%${term}%"`,
-          )
+          // The catalogue has no view of its own: it is a single table with no
+          // joins, so `name` alone is the one column worth matching -- a
+          // picker is browsed by name, and `sku` is looked up exactly if at
+          // all. One ILIKE, one column.
+          query = query.ilike('name', toSearchPattern(search))
         }
 
         const { data, error } = await query

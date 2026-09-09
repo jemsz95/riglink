@@ -2,18 +2,29 @@ import { queryOptions } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { withStaleClaimsRetry } from '@/lib/auth/refresh-on-stale-claims'
 import { siteKeys } from '@/features/jobs/keys'
-import { escapeOrFilterTerm } from '@/features/jobs/queries'
-import type { QueryData } from '@supabase/supabase-js'
+import { toSearchPattern } from '@/features/jobs/queries'
+import type { Json } from '@/lib/supabase/database.types'
 
-const SITE_LIST_SELECT = `
-  id, name, address, timezone, lat, lng,
-  site_contact_name, site_contact_phone, archived_at, client_id,
-  clients!sites_client_fk (id, name),
-  jobs!jobs_site_fk (count)
-` as const
-
-const siteListBase = () => supabase.from('sites').select(SITE_LIST_SELECT)
-export type SiteListRow = QueryData<ReturnType<typeof siteListBase>>[number]
+/**
+ * The list reads `staff_site_list_v`, which carries the owning client's name
+ * and the job count. `client_name` is nullable because the view LEFT JOINs --
+ * a site is never dropped from the list because its client row was
+ * unreadable.
+ */
+export interface SiteListRow {
+  id: string
+  client_id: string
+  name: string
+  address: Json | null
+  timezone: string | null
+  lat: number | null
+  lng: number | null
+  site_contact_name: string | null
+  site_contact_phone: string | null
+  archived_at: string | null
+  client_name: string | null
+  job_count: number
+}
 
 export const siteListQuery = (orgId: string, search: string) =>
   queryOptions({
@@ -21,19 +32,38 @@ export const siteListQuery = (orgId: string, search: string) =>
     queryFn: () =>
       withStaleClaimsRetry(async (): Promise<Array<SiteListRow>> => {
         let query = supabase
-          .from('sites')
-          .select(SITE_LIST_SELECT)
+          .from('staff_site_list_v')
+          .select('*')
           .eq('org_id', orgId)
           .is('archived_at', null)
 
         if (search) {
-          const term = escapeOrFilterTerm(search)
-          query = query.or(`name.ilike."%${term}%"`)
+          query = query.ilike('search_text', toSearchPattern(search))
         }
 
         const { data, error } = await query.order('name', { ascending: true })
         if (error) throw error
-        return data
+        return data.map((row) => {
+          if (row.id == null || row.name == null || row.client_id == null) {
+            throw new Error(
+              'staff_site_list_v returned a row missing a NOT NULL site column; the view and the base table have diverged',
+            )
+          }
+          return {
+            id: row.id,
+            client_id: row.client_id,
+            name: row.name,
+            address: row.address,
+            timezone: row.timezone,
+            lat: row.lat,
+            lng: row.lng,
+            site_contact_name: row.site_contact_name,
+            site_contact_phone: row.site_contact_phone,
+            archived_at: row.archived_at,
+            client_name: row.client_name,
+            job_count: Number(row.job_count ?? 0),
+          }
+        })
       }),
   })
 

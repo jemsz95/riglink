@@ -74,16 +74,14 @@ function QuoteEditorPage() {
   >('idle')
 
   const autosave = useMutation({
-    mutationFn: (input: {
-      values: QuoteDraftValues
-      removedIds: Array<string>
-    }) => {
+    // No `removedIds`: save_quote_draft deletes whatever is absent from the
+    // array it is given, so the editor's line list is the whole instruction
+    // and there is no second list to fall out of step with it.
+    mutationFn: (input: { values: QuoteDraftValues }) => {
       if (!current) throw new Error('no quote to save')
       return saveDraft.mutateAsync({
         quoteId: current.id,
-        clientId: current.client_id,
         lines: input.values.lines,
-        removedIds: input.removedIds,
         header: {
           notes: input.values.notes.trim() || null,
           terms: input.values.terms.trim() || null,
@@ -101,8 +99,8 @@ function QuoteEditorPage() {
   })
 
   const handleAutosave = useCallback(
-    (values: QuoteDraftValues, removedIds: Array<string>) => {
-      autosave.mutate({ values, removedIds })
+    (values: QuoteDraftValues) => {
+      autosave.mutate({ values })
     },
     [autosave],
   )
@@ -211,11 +209,7 @@ function QuoteEditorPage() {
             disabled={supersede.isPending}
             onClick={() => {
               supersede.mutate(
-                {
-                  quoteId: current.id,
-                  jobId,
-                  clientId: current.client_id,
-                },
+                { quoteId: current.id },
                 {
                   onSuccess: () => toast.success('New revision created'),
                   onError: (error) => toast.error(toUserMessage(error)),
@@ -277,7 +271,7 @@ function QuoteEditorPage() {
             lines={(lines.data ?? []).map(toPrintableLine)}
             jobTitle={job.data.title}
             jobNumber={job.data.number}
-            clientName={job.data.clients.name}
+            clientName={job.data.client_name ?? '—'}
             orgName={org.name}
           />
         </>

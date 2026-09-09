@@ -46,7 +46,7 @@ export interface LineItemEditorProps {
     totalCents: number
   } | null
   /** Called at most once per idle period with the whole draft. */
-  onAutosave: (values: QuoteDraftValues, removedIds: Array<string>) => void
+  onAutosave: (values: QuoteDraftValues) => void
   saveState: 'idle' | 'saving' | 'saved' | 'error'
   disabled?: boolean
 }
@@ -90,13 +90,6 @@ export function LineItemEditor({
 }: LineItemEditorProps) {
   const form = useAppForm({ defaultValues: initial })
 
-  // Ids the server had when the editor opened. Anything missing from the
-  // current array has been removed and must be deleted, which a plain upsert
-  // of the remaining rows would never communicate.
-  const initialIdsRef = useRef<Array<string>>(
-    initial.lines.map((line) => line.id).filter((id): id is string => !!id),
-  )
-
   const lastSavedRef = useRef<string>(JSON.stringify(initial))
   const [dirty, setDirty] = useState(false)
 
@@ -105,8 +98,16 @@ export function LineItemEditor({
   }, [])
 
   // One debounced save of the entire draft. Not per keystroke and not per
-  // field: the server diff-upserts the array in a transaction, so a partial
-  // save is never a state the document passes through.
+  // field: `save_quote_draft` applies the whole array in a single
+  // transaction, so a partial save is never a state the document passes
+  // through.
+  //
+  // The editor no longer tracks which ids were removed. It used to diff
+  // against the ids present when the editor opened, held in a ref, which got
+  // it wrong in one direction: a line added and then deleted in the same
+  // session was never in that ref, so it was never sent for deletion and
+  // stayed behind as an orphan on the quote. Handing the server the intended
+  // final array and letting it delete the difference has no such gap.
   useEffect(() => {
     if (!dirty || disabled) return
     const timer = setTimeout(() => {
@@ -125,16 +126,9 @@ export function LineItemEditor({
       )
       if (!allValid) return
 
-      const presentIds = new Set(
-        values.lines.map((line) => line.id).filter(Boolean),
-      )
-      const removedIds = initialIdsRef.current.filter(
-        (id) => !presentIds.has(id),
-      )
-
       lastSavedRef.current = serialised
       setDirty(false)
-      onAutosave(values, removedIds)
+      onAutosave(values)
     }, AUTOSAVE_MS)
 
     return () => clearTimeout(timer)

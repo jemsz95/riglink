@@ -158,6 +158,122 @@ additional work on a live job.
 All test rows were removed afterwards; every table is back to zero except the
 36 rows of `job_status_transitions` reference data.
 
+### Explicit grants and transactional quote writes
+
+Verified live against the project after `20260909170200`–`20260909174500`.
+
+| Check                                                                  | Result                                                                                                                                                      |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `anon` object privileges anywhere in `public` / `app`                  | none: every table, view, sequence and function returns false                                                                                                |
+| `anon` USAGE on schema `app`                                           | denied — even naming `app.*` fails before privilege checks                                                                                                  |
+| `authenticated` grants per table                                       | one verb at a time, matching the policies; `number_sequences` and `auth_claim_epochs` hold zero                                                             |
+| New table created as `postgres`                                        | no `anon` / `authenticated` grants, and `relrowsecurity = true` from Supabase's `ensure_rls`                                                                |
+| New `SECURITY DEFINER` function in `public`                            | `anon` and `authenticated` both false, stripped by the event trigger                                                                                        |
+| `public.rls_auto_enable()`                                             | closed to `anon`, `PUBLIC` and `authenticated`; `ensure_rls` still fires (new table gets RLS)                                                               |
+| `ALTER DEFAULT PRIVILEGES ... REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` | accepted, `pg_default_acl` shows no PUBLIC — and the next function still gets `=X`. Hence the event trigger.                                                |
+| EXECUTE privilege on a trigger function                                | not consulted when the trigger fires: a `BEFORE INSERT` trigger with EXECUTE revoked from PUBLIC still fired for `authenticated` and still modified the row |
+| Full request → quote → approve loop under the new grants               | unchanged: sequence numbers, audit rows, generated columns, header totals, definer RPCs all work                                                            |
+| `create_organization` with no INSERT grant on `organizations`          | succeeds — the definer path                                                                                                                                 |
+| Job insert with zero privileges on `number_sequences`                  | `number` assigned; `job_status_events` row written with SELECT-only grant                                                                                   |
+| `save_quote_draft`: 2 new lines, quantities as strings                 | totals 27450 / 2265 / 29715, identical to a hand-built insert and to `computeTotals`                                                                        |
+| `save_quote_draft`: swap two positions + edit + add, in one call       | reorder applied, no unique violation (`unique (quote_id, position)` is deferred)                                                                            |
+| `save_quote_draft`: drop to one line                                   | the other two deleted, header totals follow, omitted header keys preserved                                                                                  |
+| `save_quote_draft` on a sent quote                                     | refused, `23514`                                                                                                                                            |
+| `supersede_quote`                                                      | old quote `superseded` and still locked with its lines; new draft carries lines, notes and totals                                                           |
+
+One bug was found by this run and fixed in `20260909174500`. The first
+`save_quote_draft` guarded the upsert with `on conflict (id) do update ...
+where t.quote_id = p_quote_id`, which protected the other quote but **skipped
+the row silently** — ON CONFLICT with a failing WHERE is not an error. The
+target quote's own lines had already been deleted for not appearing in the
+incoming set, so the call returned success having left the quote empty. That is
+reachable without malice: `supersede_quote` copies lines to new ids, so an
+editor tab left open across a supersede holds ids that now belong to the
+superseded quote. It now raises before deleting anything.
+
+All test rows were removed afterwards; every table is back to zero except the
+36 rows of `job_status_transitions` reference data.
+
+### The portal column leak, and closing it
+
+Found while verifying the staff views, and **pre-existing** — the staff views
+did not cause it. Verified with a contact JWT holding one client id, before the
+fix:
+
+| Read as a portal contact                                          | Before                                      |
+| ----------------------------------------------------------------- | ------------------------------------------- |
+| `/rest/v1/jobs?select=*` → `internal_notes`                       | `SECRET: client is 90 days late on payment` |
+| `clients.notes`                                                   | `SECRET: do not extend credit`              |
+| `sites.access_notes`, `quotes.internal_note`, `jobs.lead_tech_id` | all readable                                |
+
+Closed by `20260909184500`. After it, with the same JWT:
+
+| Check                                                                                      | Result                                                                          |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `jobs`, `sites`, `quotes`, `quote_line_items`, `clients`, `job_status_events` as a contact | 0 rows each                                                                     |
+| `internal_notes` / `notes` / `access_notes` / `internal_note` / `lead_tech_id`             | all null                                                                        |
+| `staff_*_v` as a contact                                                                   | 0 rows (invoker views over policies they no longer have)                        |
+| `portal_job_v`                                                                             | the one `requested` job; the `draft` job hidden                                 |
+| `portal_quote_v`                                                                           | the `sent` quote only; the draft quote hidden                                   |
+| `portal_quote_line_v`                                                                      | the sent quote's line only; the draft's line hidden                             |
+| `my_memberships()` as a contact                                                            | client and org names still resolve (now definer)                                |
+| A contact of a **different** client, same org                                              | 0 rows through all four portal views                                            |
+| Stale claim epoch, reading a portal view                                                   | `P0001 stale authorization claims` — the gate fires inside an owner-rights view |
+| `anon` on `portal_job_v` and on `jobs`                                                     | no privilege on either                                                          |
+| `approve_quote` as the contact                                                             | works; approval readable; snapshot carries no `internal_note`                   |
+| Staff owner after the change                                                               | unaffected: base tables, both staff views, `internal_notes` all still visible   |
+
+### Staff views
+
+| Check                                                           | Result                                                               |
+| --------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `security_invoker` on all four `staff_*_v`                      | `on`                                                                 |
+| Job with no site (LEFT JOIN)                                    | row present, `site_name` and `site_timezone` null                    |
+| Search `%boiler, room%` — the comma that broke PGRST100         | matches; one ILIKE has no logic tree to break                        |
+| Search `%3%`                                                    | matches title "room 3" and job number 3                              |
+| Search on description, client `external_ref`, site contact name | all match through `search_text`                                      |
+| `staff_client_list_v` counts                                    | `Acme:1 site/2 jobs`, `Borden:1/1` — computed under the caller's RLS |
+| A `tech`                                                        | sees all 3 jobs, 2 clients, 2 sites — same as before                 |
+| A user with no membership                                       | 0 rows through all four                                              |
+
+### Staff-only notes in side tables
+
+`20260909193000` / `20260909193500` / `20260909200000` replace the
+owner-rights portal views with structural absence, which also cleared four
+ERROR-level `0010_security_definer_view` findings that had no suppression
+path. Verified live:
+
+| Check                                                                                                           | Result                                                         |
+| --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `select internal_notes from jobs`, `notes from clients`, `access_notes from sites`, `internal_note from quotes` | all `42703` — the columns do not exist                         |
+| Portal contact reading `jobs`/`sites`/`clients`/`quotes`/`quote_line_items`                                     | 1 row each — RLS row access is back (lock 1)                   |
+| Portal contact reading all four note tables                                                                     | 0 rows each (lock 2)                                           |
+| `portal_job_v` / `portal_quote_v` / `portal_site_v` as a contact                                                | still work; draft job and draft quote still hidden             |
+| `create_site` with access notes                                                                                 | site + note in one transaction                                 |
+| `create_job` with an internal note                                                                              | job + note in one transaction, `number` from the sequence      |
+| `save_quote_draft` with `internal_note` in the header                                                           | routed to `quote_internal_notes`; readable via `staff_quote_v` |
+| `set_job_internal_notes(job, 'text')`                                                                           | note set, visible through `staff_job_detail_v`                 |
+| `set_job_internal_notes(job, '   ')`                                                                            | row deleted, view returns null — blank means absent            |
+| `supersede_quote`                                                                                               | internal note carried to the new revision                      |
+| A `tech`: job internal notes, site access notes, client notes                                                   | all visible — identical to when they were columns              |
+| A `tech`: `staff_quote_v` and `quote_internal_notes`                                                            | 0 rows — techs still read nothing priced                       |
+| Parent deletes with no explicit delete on the note tables                                                       | all four cascaded to 0 via the composite FKs                   |
+| Security advisor                                                                                                | 0 ERROR; 1 INFO + 5 WARN, all intentional and allowlisted      |
+
+### CI checks
+
+`npm run check:advisors` and `scripts/check-migrations-in-sync.mjs`, both
+exercised in each direction:
+
+| Scenario                                    | Result                                                    |
+| ------------------------------------------- | --------------------------------------------------------- |
+| Advisors, allowlist complete                | `advisors: clean`, exit 0                                 |
+| A finding missing from the allowlist        | names it with its `cache_key` and remediation URL, exit 1 |
+| An allowlist entry matching nothing (stale) | names it, exit 1                                          |
+| `SUPABASE_ACCESS_TOKEN` unset               | exit 2 and says to set the secret — never a silent skip   |
+| Migrations in sync                          | `29 tracked`, exit 0                                      |
+| A migration in the repo but not applied     | names it, says `npm run db:push`, exit 1                  |
+
 ### Seeding auth users directly (for `seed.sql`)
 
 Inserting into `auth.users` by hand fails sign-in with a bare

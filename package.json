@@ -28,7 +28,8 @@
     "config:diff": "supabase config diff --project-ref nhrtxcdmnjvewvctfwao",
     "config:push": "supabase config push --project-ref nhrtxcdmnjvewvctfwao",
     "db:migrations": "supabase migration list --project-ref nhrtxcdmnjvewvctfwao",
-    "deploy": "supabase db push --project-ref nhrtxcdmnjvewvctfwao && supabase config push --project-ref nhrtxcdmnjvewvctfwao"
+    "deploy": "supabase db push --project-ref nhrtxcdmnjvewvctfwao && supabase config push --project-ref nhrtxcdmnjvewvctfwao",
+    "check:advisors": "node scripts/check-advisors.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

@@ -7,7 +7,7 @@ import {
   pageRange,
   stripJobListDefaults,
 } from './filters'
-import { escapeOrFilterTerm } from './queries'
+import { toSearchPattern } from './queries'
 
 const UUID = '3f0c2a1e-7b4d-4c8a-9e2f-1a2b3c4d5e6f'
 
@@ -133,21 +133,31 @@ describe('pagination arithmetic', () => {
   })
 })
 
-describe('escapeOrFilterTerm', () => {
-  // Verified against the live API: an unquoted comma fails the PostgREST logic
-  // tree parse with PGRST100, so `boiler, room` would error instead of
-  // returning results. The call site wraps the term in double quotes; this
-  // escapes what would end them early.
-  it('escapes the characters that would break out of the quoted term', () => {
-    expect(escapeOrFilterTerm('say "hi"')).toBe('say \\"hi\\"')
-    expect(escapeOrFilterTerm('a\\b')).toBe('a\\\\b')
+describe('toSearchPattern', () => {
+  // The whole reason `escapeOrFilterTerm` existed was that a comma inside a
+  // PostgREST `or` term breaks the logic-tree parse with PGRST100. Search is
+  // now a single ILIKE against one `search_text` column, so there is no logic
+  // tree to break and nothing to escape.
+  it('leaves a comma alone -- there is no longer a logic tree to break', () => {
+    expect(toSearchPattern('boiler, room')).toBe('%boiler, room%')
   })
 
-  it('leaves a comma alone -- quoting is what makes it safe', () => {
-    expect(escapeOrFilterTerm('boiler, room')).toBe('boiler, room')
+  it('leaves quotes and backslashes alone', () => {
+    expect(toSearchPattern('say "hi"')).toBe('%say "hi"%')
+    expect(toSearchPattern('a\\b')).toBe('%a\\b%')
   })
 
   it('leaves % alone, where a wildcard is the useful behaviour', () => {
-    expect(escapeOrFilterTerm('100%')).toBe('100%')
+    expect(toSearchPattern('100%')).toBe('%100%%')
+  })
+
+  // Job numbers are rendered as #1043 and get pasted back in that form.
+  it('drops a leading # so a pasted job number matches', () => {
+    expect(toSearchPattern('#1043')).toBe('%1043%')
+    expect(toSearchPattern('  #1043  ')).toBe('%1043%')
+  })
+
+  it('keeps a # that is not leading', () => {
+    expect(toSearchPattern('unit #4 boiler')).toBe('%unit #4 boiler%')
   })
 })

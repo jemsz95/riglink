@@ -157,6 +157,96 @@ from an admin. No policy on `quotes`, `quote_line_items`, `catalog_items` or
 `app.orgs_with_role(['owner','admin','dispatcher'])`, and a tech consequently
 reads nothing from them while still seeing the job.
 
+**Grants are explicit, and `anon` has none.** `auto_expose_new_tables = false`
+in `config.toml` states the intent but does not implement it: a Supabase
+project carries `alter default privileges in schema public grant all on tables
+to anon, authenticated, service_role`, which survives a `config push`. Every
+table therefore arrived with all eight privileges for `anon` — the Phase 3
+quote tables included, whose migration granted precisely and said nothing
+about `anon`, so its explicit grant was a no-op next to a default that had
+already granted everything. RLS still denied every row, so nothing was
+exposed, but the second lock was not fitted. The default ACL is now rewritten,
+`anon` holds nothing anywhere, and `authenticated` is granted one verb at a
+time per table to match the policies that exist. A table needs two independent
+mistakes — a grant _and_ a policy — to leak.
+
+**New functions are closed by an event trigger, because they cannot be closed
+by default privileges.** `alter default privileges ... revoke execute on
+functions from public` is accepted and `pg_default_acl` afterwards shows no
+PUBLIC entry, yet the next function created still comes out with `=X` on it:
+Postgres unions the stored default with the built-in world default for
+functions. `PUBLIC` includes `anon`, so a new definer RPC in `public` is born
+callable by anyone with the publishable key. `app.revoke_public_execute()`,
+an event trigger on `CREATE`/`ALTER FUNCTION`, strips it. Explicit grants are
+untouched, so `grant execute ... to authenticated` on the next line still
+works and remains the only way a client reaches an RPC.
+
+**Multi-step writes are RPCs, because PostgREST gives each request its own
+transaction.** `save_quote_draft` and `supersede_quote` exist for atomicity,
+not tidiness. As client-side sequences they were three and four separate
+requests, and the save path deleted lines first — so a dropped connection
+mid-sequence left a quote with its lines destroyed and nothing put back, on an
+800ms autosave, unattended. Both are `SECURITY INVOKER`: staff already hold
+the policies, so RLS and the quote-lock trigger decide exactly as they did
+before. `save_quote_draft` also takes the line array as the whole instruction
+and deletes what is absent, which retired a client-side `removedIds` diff that
+could not see a line added and deleted within one session and left it behind as
+an orphan.
+
+**The portal reads views only, and staff-only columns are in side tables.**
+RLS filters rows, not columns, and Supabase has a single `authenticated` role
+— so a policy letting a contact read their own job rows let them read every
+column of those rows. `jobs.internal_notes`, `clients.notes`,
+`sites.access_notes` and `quotes.internal_note` were all reachable at
+`/rest/v1/jobs?select=*` with a contact's own JWT, even though the portal
+application only ever read `portal_job_v`. Nothing compelled it to.
+
+Those four columns now live in `job_internal_notes`, `client_internal_notes`,
+`site_access_notes` and `quote_internal_notes` — staff-only tables with a
+composite `(parent_id, org_id)` FK, so a note cannot even be attached across
+tenants. Asking for the old columns returns `42703`: they are structurally
+absent, which is the claim this file used to make before it was true. The
+portal keeps its base-table row policies and its views are back to
+`security_invoker = on`, so the read path has two independent locks — an RLS
+row filter _and_ a column projection — and a mistake in either alone leaks
+nothing.
+
+`jobs.lead_tech_id` deliberately stays on `jobs`. It is a bare UUID with no
+name or email attached, the list renders it and the tech-update policy keys off
+it, so hiding it would contort the assignment model for almost no value. A
+contact learning that some uuid is assigned is the accepted residual.
+
+**The standing cost is discipline.** A new staff-only column on `jobs`,
+`clients`, `sites` or `quotes` will leak to contacts exactly as those four did,
+and no lint will say so. Those four tables are the ones to think twice about.
+
+**Writing a parent and its note is one transaction.** `create_job` and
+`create_site` exist because a job and its internal note are now two
+statements, and two statements from a browser are two PostgREST requests and
+therefore two transactions. Both are `SECURITY INVOKER` and derive `org_id`
+from the client rather than accepting it, so a job cannot disagree with its
+client. `set_job_internal_notes` sets or clears one note; blank deletes the
+row, because absence is how "no note" is stored.
+
+**Advisor findings are gated in CI, not watched in a dashboard.**
+`npm run check:advisors` reads the Security and Performance advisors and fails
+on any finding not accepted, with a written reason, in
+`supabase/advisor-allowlist.json`. Splinter — the linter behind the advisors —
+runs SQL against the catalog rather than reading migrations, and has no
+suppression mechanism of any kind (`cache_key` exists in its lint interface
+for an exclusion list that was never given a user-facing implementation), so
+this is where exceptions live and adding one is a reviewed diff. A stale entry
+that no longer matches any finding also fails, so exceptions cannot rot into a
+place where real findings hide. Performance `INFO` is counted but not gated:
+it is dominated by `unindexed_foreign_keys` on columns nothing queries and
+`unused_index`, which on a project that has served no production traffic flags
+the indexes that were added on purpose.
+
+There are currently **no ERROR-level findings**. The accepted set is the
+`number_sequences` deny-all posture, the five definer RPCs that signed-in users
+are meant to call, and eleven `multiple_permissive_policies` warnings that are
+the price of serving staff and contacts from one `authenticated` role.
+
 **Money is integer cents everywhere** — database, UI, CSV export. Never a
 float. One shared `computeTotals` serves quotes, invoices and the accounting
 export so the three cannot disagree.

@@ -2,17 +2,25 @@ import { queryOptions } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { withStaleClaimsRetry } from '@/lib/auth/refresh-on-stale-claims'
 import { clientKeys } from '@/features/jobs/keys'
-import { escapeOrFilterTerm } from '@/features/jobs/queries'
+import { toSearchPattern } from '@/features/jobs/queries'
 import type { QueryData } from '@supabase/supabase-js'
 
-const CLIENT_LIST_SELECT = `
-  id, name, billing_email, phone, external_ref, archived_at, created_at,
-  sites!sites_client_fk (count),
-  jobs!jobs_client_fk (count)
-` as const
-
-const clientListBase = () => supabase.from('clients').select(CLIENT_LIST_SELECT)
-export type ClientListRow = QueryData<ReturnType<typeof clientListBase>>[number]
+/**
+ * The list reads `staff_client_list_v`: the same projection, with the site and
+ * job counts computed in SQL under the caller's own RLS rather than assembled
+ * from two PostgREST embed aggregates.
+ */
+export interface ClientListRow {
+  id: string
+  name: string
+  billing_email: string | null
+  phone: string | null
+  external_ref: string | null
+  archived_at: string | null
+  created_at: string
+  site_count: number
+  job_count: number
+}
 
 export const clientListQuery = (orgId: string, search: string) =>
   queryOptions({
@@ -20,21 +28,37 @@ export const clientListQuery = (orgId: string, search: string) =>
     queryFn: () =>
       withStaleClaimsRetry(async (): Promise<Array<ClientListRow>> => {
         let query = supabase
-          .from('clients')
-          .select(CLIENT_LIST_SELECT)
+          .from('staff_client_list_v')
+          .select('*')
           .eq('org_id', orgId)
           .is('archived_at', null)
 
         if (search) {
-          const term = escapeOrFilterTerm(search)
-          query = query.or(
-            `name.ilike."%${term}%",billing_email.ilike."%${term}%"`,
-          )
+          query = query.ilike('search_text', toSearchPattern(search))
         }
 
         const { data, error } = await query.order('name', { ascending: true })
         if (error) throw error
-        return data
+        return data.map((row) => {
+          // View columns all type as nullable; `id`, `name` and `created_at`
+          // are NOT NULL on `clients`, and the counts cannot be null.
+          if (row.id == null || row.name == null || row.created_at == null) {
+            throw new Error(
+              'staff_client_list_v returned a row missing a NOT NULL client column; the view and the base table have diverged',
+            )
+          }
+          return {
+            id: row.id,
+            name: row.name,
+            billing_email: row.billing_email,
+            phone: row.phone,
+            external_ref: row.external_ref,
+            archived_at: row.archived_at,
+            created_at: row.created_at,
+            site_count: Number(row.site_count ?? 0),
+            job_count: Number(row.job_count ?? 0),
+          }
+        })
       }),
   })
 

@@ -86,7 +86,7 @@ function SitesPage() {
                 params={{ orgSlug, clientId: site.client_id }}
                 className="text-muted-foreground hover:text-primary truncate text-sm underline-offset-4 hover:underline"
               >
-                {site.clients.name}
+                {orDash(site.client_name)}
               </Link>
               <p className="text-muted-foreground text-xs">
                 {formatAddressLine(site.address)}
@@ -97,7 +97,7 @@ function SitesPage() {
                 </p>
               ) : null}
               <p className="text-muted-foreground mt-auto pt-2 text-xs">
-                {site.jobs[0]?.count ?? 0} jobs
+                {site.job_count} jobs
               </p>
             </li>
           ))}

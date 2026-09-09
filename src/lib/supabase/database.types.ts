@@ -105,6 +105,20 @@ export type Database = {
             referencedColumns: ["id", "org_id"]
           },
           {
+            foreignKeyName: "approvals_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "approvals_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
             foreignKeyName: "approvals_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -123,6 +137,13 @@ export type Database = {
             columns: ["quote_id", "org_id"]
             isOneToOne: false
             referencedRelation: "quotes"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "approvals_quote_fk"
+            columns: ["quote_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_quote_v"
             referencedColumns: ["id", "org_id"]
           },
         ]
@@ -262,10 +283,66 @@ export type Database = {
             referencedColumns: ["id", "org_id"]
           },
           {
+            foreignKeyName: "client_contacts_client_fk"
+            columns: ["client_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_client_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
             foreignKeyName: "client_contacts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_internal_notes: {
+        Row: {
+          client_id: string
+          created_at: string
+          notes: string
+          org_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          notes: string
+          org_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          notes?: string
+          org_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_internal_notes_client_fk"
+            columns: ["client_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "client_internal_notes_client_fk"
+            columns: ["client_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_client_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "client_internal_notes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -280,7 +357,6 @@ export type Database = {
           external_ref: string | null
           id: string
           name: string
-          notes: string | null
           org_id: string
           phone: string | null
           updated_at: string
@@ -294,7 +370,6 @@ export type Database = {
           external_ref?: string | null
           id?: string
           name: string
-          notes?: string | null
           org_id: string
           phone?: string | null
           updated_at?: string
@@ -308,7 +383,6 @@ export type Database = {
           external_ref?: string | null
           id?: string
           name?: string
-          notes?: string | null
           org_id?: string
           phone?: string | null
           updated_at?: string
@@ -319,6 +393,69 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_internal_notes: {
+        Row: {
+          created_at: string
+          job_id: string
+          notes: string
+          org_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          job_id: string
+          notes: string
+          org_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          job_id?: string
+          notes?: string
+          org_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_internal_notes_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "job_internal_notes_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "portal_job_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "job_internal_notes_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "job_internal_notes_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "job_internal_notes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -372,6 +509,20 @@ export type Database = {
             referencedRelation: "portal_job_v"
             referencedColumns: ["id", "org_id"]
           },
+          {
+            foreignKeyName: "job_status_events_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "job_status_events_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
         ]
       }
       job_status_transitions: {
@@ -401,7 +552,6 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
-          internal_notes: string | null
           lead_tech_id: string | null
           number: number
           org_id: string
@@ -424,7 +574,6 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
-          internal_notes?: string | null
           lead_tech_id?: string | null
           number: number
           org_id: string
@@ -447,7 +596,6 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
-          internal_notes?: string | null
           lead_tech_id?: string | null
           number?: number
           org_id?: string
@@ -468,6 +616,13 @@ export type Database = {
             columns: ["client_id", "org_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "jobs_client_fk"
+            columns: ["client_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_client_list_v"
             referencedColumns: ["id", "org_id"]
           },
           {
@@ -496,6 +651,13 @@ export type Database = {
             columns: ["site_id", "org_id"]
             isOneToOne: false
             referencedRelation: "sites"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "jobs_site_fk"
+            columns: ["site_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_site_list_v"
             referencedColumns: ["id", "org_id"]
           },
         ]
@@ -645,6 +807,62 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_internal_notes: {
+        Row: {
+          created_at: string
+          notes: string
+          org_id: string
+          quote_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          notes: string
+          org_id: string
+          quote_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          notes?: string
+          org_id?: string
+          quote_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_internal_notes_quote_fk"
+            columns: ["quote_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "portal_quote_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "quote_internal_notes_quote_fk"
+            columns: ["quote_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "quote_internal_notes_quote_fk"
+            columns: ["quote_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_quote_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "quote_internal_notes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quote_line_items: {
         Row: {
           catalog_item_id: string | null
@@ -730,6 +948,13 @@ export type Database = {
             referencedColumns: ["id", "client_id"]
           },
           {
+            foreignKeyName: "quote_line_items_quote_client_fk"
+            columns: ["quote_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_quote_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
             foreignKeyName: "quote_line_items_quote_fk"
             columns: ["quote_id", "org_id"]
             isOneToOne: false
@@ -743,6 +968,13 @@ export type Database = {
             referencedRelation: "quotes"
             referencedColumns: ["id", "org_id"]
           },
+          {
+            foreignKeyName: "quote_line_items_quote_fk"
+            columns: ["quote_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_quote_v"
+            referencedColumns: ["id", "org_id"]
+          },
         ]
       }
       quotes: {
@@ -753,7 +985,6 @@ export type Database = {
           currency: string
           decided_at: string | null
           id: string
-          internal_note: string | null
           job_id: string
           locked_at: string | null
           notes: string | null
@@ -775,7 +1006,6 @@ export type Database = {
           currency?: string
           decided_at?: string | null
           id?: string
-          internal_note?: string | null
           job_id: string
           locked_at?: string | null
           notes?: string | null
@@ -797,7 +1027,6 @@ export type Database = {
           currency?: string
           decided_at?: string | null
           id?: string
-          internal_note?: string | null
           job_id?: string
           locked_at?: string | null
           notes?: string | null
@@ -828,6 +1057,20 @@ export type Database = {
             referencedColumns: ["id", "client_id"]
           },
           {
+            foreignKeyName: "quotes_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "quotes_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
             foreignKeyName: "quotes_job_fk"
             columns: ["job_id", "org_id"]
             isOneToOne: false
@@ -842,6 +1085,20 @@ export type Database = {
             referencedColumns: ["id", "org_id"]
           },
           {
+            foreignKeyName: "quotes_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "quotes_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
             foreignKeyName: "quotes_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -850,9 +1107,64 @@ export type Database = {
           },
         ]
       }
+      site_access_notes: {
+        Row: {
+          created_at: string
+          notes: string
+          org_id: string
+          site_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          notes: string
+          org_id: string
+          site_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          notes?: string
+          org_id?: string
+          site_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_access_notes_site_fk"
+            columns: ["site_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "portal_site_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "site_access_notes_site_fk"
+            columns: ["site_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "site_access_notes_site_fk"
+            columns: ["site_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_site_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "site_access_notes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sites: {
         Row: {
-          access_notes: string | null
           address: Json | null
           archived_at: string | null
           client_id: string
@@ -869,7 +1181,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          access_notes?: string | null
           address?: Json | null
           archived_at?: string | null
           client_id: string
@@ -886,7 +1197,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          access_notes?: string | null
           address?: Json | null
           archived_at?: string | null
           client_id?: string
@@ -908,6 +1218,13 @@ export type Database = {
             columns: ["client_id", "org_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "sites_client_fk"
+            columns: ["client_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_client_list_v"
             referencedColumns: ["id", "org_id"]
           },
           {
@@ -985,6 +1302,13 @@ export type Database = {
             referencedColumns: ["id", "org_id"]
           },
           {
+            foreignKeyName: "jobs_client_fk"
+            columns: ["client_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_client_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
             foreignKeyName: "jobs_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -1003,6 +1327,13 @@ export type Database = {
             columns: ["site_id", "org_id"]
             isOneToOne: false
             referencedRelation: "sites"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "jobs_site_fk"
+            columns: ["site_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_site_list_v"
             referencedColumns: ["id", "org_id"]
           },
         ]
@@ -1076,6 +1407,13 @@ export type Database = {
             referencedColumns: ["id", "client_id"]
           },
           {
+            foreignKeyName: "quote_line_items_quote_client_fk"
+            columns: ["quote_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_quote_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
             foreignKeyName: "quote_line_items_quote_fk"
             columns: ["quote_id", "org_id"]
             isOneToOne: false
@@ -1087,6 +1425,13 @@ export type Database = {
             columns: ["quote_id", "org_id"]
             isOneToOne: false
             referencedRelation: "quotes"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "quote_line_items_quote_fk"
+            columns: ["quote_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_quote_v"
             referencedColumns: ["id", "org_id"]
           },
         ]
@@ -1165,6 +1510,20 @@ export type Database = {
             referencedColumns: ["id", "client_id"]
           },
           {
+            foreignKeyName: "quotes_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "quotes_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
             foreignKeyName: "quotes_job_fk"
             columns: ["job_id", "org_id"]
             isOneToOne: false
@@ -1176,6 +1535,20 @@ export type Database = {
             columns: ["job_id", "org_id"]
             isOneToOne: false
             referencedRelation: "portal_job_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "quotes_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "quotes_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
             referencedColumns: ["id", "org_id"]
           },
           {
@@ -1233,6 +1606,350 @@ export type Database = {
             referencedColumns: ["id", "org_id"]
           },
           {
+            foreignKeyName: "sites_client_fk"
+            columns: ["client_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_client_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "sites_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_client_list_v: {
+        Row: {
+          archived_at: string | null
+          billing_email: string | null
+          created_at: string | null
+          external_ref: string | null
+          id: string | null
+          job_count: number | null
+          name: string | null
+          org_id: string | null
+          phone: string | null
+          search_text: string | null
+          site_count: number | null
+        }
+        Insert: {
+          archived_at?: string | null
+          billing_email?: string | null
+          created_at?: string | null
+          external_ref?: string | null
+          id?: string | null
+          job_count?: never
+          name?: string | null
+          org_id?: string | null
+          phone?: string | null
+          search_text?: never
+          site_count?: never
+        }
+        Update: {
+          archived_at?: string | null
+          billing_email?: string | null
+          created_at?: string | null
+          external_ref?: string | null
+          id?: string | null
+          job_count?: never
+          name?: string | null
+          org_id?: string | null
+          phone?: string | null
+          search_text?: never
+          site_count?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_job_detail_v: {
+        Row: {
+          client_billing_email: string | null
+          client_id: string | null
+          client_name: string | null
+          client_phone: string | null
+          closed_at: string | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string | null
+          internal_notes: string | null
+          lead_tech_id: string | null
+          number: number | null
+          org_id: string | null
+          priority: Database["public"]["Enums"]["job_priority"] | null
+          requested_by_contact_id: string | null
+          requested_by_email: string | null
+          requested_by_name: string | null
+          requested_for: string | null
+          scheduled_end: string | null
+          scheduled_start: string | null
+          site_access_notes: string | null
+          site_address: Json | null
+          site_contact_name: string | null
+          site_contact_phone: string | null
+          site_id: string | null
+          site_lat: number | null
+          site_lng: number | null
+          site_name: string | null
+          site_timezone: string | null
+          source: Database["public"]["Enums"]["job_source"] | null
+          status: Database["public"]["Enums"]["job_status"] | null
+          title: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_client_fk"
+            columns: ["client_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "jobs_client_fk"
+            columns: ["client_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_client_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "jobs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_requested_by_contact_id_fkey"
+            columns: ["requested_by_contact_id"]
+            isOneToOne: false
+            referencedRelation: "client_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_site_fk"
+            columns: ["site_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "portal_site_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "jobs_site_fk"
+            columns: ["site_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "jobs_site_fk"
+            columns: ["site_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_site_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      staff_job_list_v: {
+        Row: {
+          client_id: string | null
+          client_name: string | null
+          created_at: string | null
+          id: string | null
+          lead_tech_id: string | null
+          number: number | null
+          org_id: string | null
+          priority: Database["public"]["Enums"]["job_priority"] | null
+          requested_for: string | null
+          scheduled_end: string | null
+          scheduled_start: string | null
+          search_text: string | null
+          site_id: string | null
+          site_name: string | null
+          site_timezone: string | null
+          source: Database["public"]["Enums"]["job_source"] | null
+          status: Database["public"]["Enums"]["job_status"] | null
+          title: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_client_fk"
+            columns: ["client_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "jobs_client_fk"
+            columns: ["client_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_client_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "jobs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_site_fk"
+            columns: ["site_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "portal_site_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "jobs_site_fk"
+            columns: ["site_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "jobs_site_fk"
+            columns: ["site_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_site_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      staff_quote_v: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          decided_at: string | null
+          id: string | null
+          internal_note: string | null
+          job_id: string | null
+          locked_at: string | null
+          notes: string | null
+          number: number | null
+          org_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["quote_status"] | null
+          subtotal_cents: number | null
+          tax_cents: number | null
+          terms: string | null
+          total_cents: number | null
+          updated_at: string | null
+          valid_until: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "quotes_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "portal_job_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "quotes_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "quotes_job_client_fk"
+            columns: ["job_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
+            referencedColumns: ["id", "client_id"]
+          },
+          {
+            foreignKeyName: "quotes_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "quotes_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "portal_job_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "quotes_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_detail_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "quotes_job_fk"
+            columns: ["job_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_job_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "quotes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_site_list_v: {
+        Row: {
+          address: Json | null
+          archived_at: string | null
+          client_id: string | null
+          client_name: string | null
+          created_at: string | null
+          id: string | null
+          job_count: number | null
+          lat: number | null
+          lng: number | null
+          name: string | null
+          org_id: string | null
+          search_text: string | null
+          site_contact_name: string | null
+          site_contact_phone: string | null
+          timezone: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sites_client_fk"
+            columns: ["client_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "sites_client_fk"
+            columns: ["client_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_client_list_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
             foreignKeyName: "sites_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -1248,6 +1965,45 @@ export type Database = {
         Returns: Json
       }
       bootstrap_session: { Args: never; Returns: Json }
+      create_job: {
+        Args: {
+          p_client_id: string
+          p_description?: string
+          p_internal_notes?: string
+          p_priority?: Database["public"]["Enums"]["job_priority"]
+          p_requested_for?: string
+          p_site_id?: string
+          p_title: string
+        }
+        Returns: {
+          client_id: string
+          closed_at: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          lead_tech_id: string | null
+          number: number
+          org_id: string
+          priority: Database["public"]["Enums"]["job_priority"]
+          requested_by_contact_id: string | null
+          requested_for: string | null
+          scheduled_end: string | null
+          scheduled_start: string | null
+          site_id: string | null
+          source: Database["public"]["Enums"]["job_source"]
+          status: Database["public"]["Enums"]["job_status"]
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_organization: {
         Args: { p_name: string; p_slug: string }
         Returns: {
@@ -1272,13 +2028,46 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_site: {
+        Args: {
+          p_access_notes?: string
+          p_address?: Json
+          p_client_id: string
+          p_name: string
+          p_site_contact_name?: string
+          p_site_contact_phone?: string
+          p_timezone?: string
+        }
+        Returns: {
+          address: Json | null
+          archived_at: string | null
+          client_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          lat: number | null
+          lng: number | null
+          name: string
+          org_id: string
+          site_contact_name: string | null
+          site_contact_phone: string | null
+          timezone: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sites"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       decline_quote: {
         Args: { p_note?: string; p_quote_id: string }
         Returns: Json
       }
       my_memberships: { Args: never; Returns: Json }
-      send_quote: {
-        Args: { p_quote_id: string }
+      save_quote_draft: {
+        Args: { p_header?: Json; p_lines: Json; p_quote_id: string }
         Returns: {
           client_id: string
           created_at: string
@@ -1286,7 +2075,6 @@ export type Database = {
           currency: string
           decided_at: string | null
           id: string
-          internal_note: string | null
           job_id: string
           locked_at: string | null
           notes: string | null
@@ -1308,6 +2096,40 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      send_quote: {
+        Args: { p_quote_id: string }
+        Returns: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          decided_at: string | null
+          id: string
+          job_id: string
+          locked_at: string | null
+          notes: string | null
+          number: number
+          org_id: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["quote_status"]
+          subtotal_cents: number
+          tax_cents: number
+          terms: string | null
+          total_cents: number
+          updated_at: string
+          valid_until: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "quotes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_job_internal_notes: {
+        Args: { p_job_id: string; p_notes: string }
+        Returns: undefined
+      }
       submit_job_request: {
         Args: {
           p_client_id: string
@@ -1324,7 +2146,6 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
-          internal_notes: string | null
           lead_tech_id: string | null
           number: number
           org_id: string
@@ -1342,6 +2163,36 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      supersede_quote: {
+        Args: { p_quote_id: string }
+        Returns: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          decided_at: string | null
+          id: string
+          job_id: string
+          locked_at: string | null
+          notes: string | null
+          number: number
+          org_id: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["quote_status"]
+          subtotal_cents: number
+          tax_cents: number
+          terms: string | null
+          total_cents: number
+          updated_at: string
+          valid_until: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "quotes"
           isOneToOne: true
           isSetofReturn: false
         }

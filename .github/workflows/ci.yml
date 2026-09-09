@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npx prettier --check .
+      - run: npm test
+      - run: npm run build
+      - run: npm run build-storybook
+
+  browser:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The dark-mode `@theme inline` regression guard and the contrast
+      # assertions need a real browser, which is why they are a separate
+      # vitest project rather than part of `npm test`.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+
+  advisors:
+    name: Supabase advisors
+    runs-on: ubuntu-latest
+    # Only on pushes to main and PRs from this repository: a fork's PR has no
+    # access to the secret, and a check that silently skips is worse than one
+    # that is not there.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Reads the Security and Performance advisors and fails on any finding
+      # not accepted, with a reason, in supabase/advisor-allowlist.json.
+      # Splinter has no suppression mechanism, so this is where exceptions
+      # live and adding one is a reviewed diff.
+      - run: npm run check:advisors
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+  migrations:
+    name: Migrations match the deployed schema
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # This repo is the source of truth: config and migrations ship together.
+      # A local migration the project has not applied, or an applied one that
+      # is not in the repo, is a half-deployed instance -- caught here rather
+      # than at runtime.
+      - run: npx supabase migration list --project-ref "$SUPABASE_PROJECT_REF" > /tmp/migrations.json
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      - run: node scripts/check-migrations-in-sync.mjs /tmp/migrations.json

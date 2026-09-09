@@ -3,7 +3,6 @@ import { supabase } from '@/lib/supabase/client'
 import { withStaleClaimsRetry } from '@/lib/auth/refresh-on-stale-claims'
 import { jobKeys } from './keys'
 import type { JobInsert, JobStatus } from '@/lib/supabase/db'
-import type { TablesInsert } from '@/lib/supabase/database.types'
 
 export interface CreateJobInput {
   client_id: string
@@ -16,13 +15,21 @@ export interface CreateJobInput {
 }
 
 /**
- * `number` is never sent: a BEFORE INSERT trigger assigns it from a per-org
- * gapless sequence. `JobInsert` omits it so this cannot be got wrong.
+ * Creates a job, with its internal note, in one transaction.
  *
- * The cast at the call is the one place that lie is told. The type generator
- * cannot see triggers, so the generated Insert type marks `number` required;
- * `satisfies JobInsert` still checks the shape we actually send, and the cast
- * is confined to this single line rather than loosening the column types.
+ * `create_job` rather than a plain insert because `internal_notes` moved to
+ * `job_internal_notes` -- a staff-only side table, so that a portal contact
+ * holding RLS row access to their own job rows cannot read it. Writing a job
+ * and its note is therefore two statements, and two statements from a browser
+ * are two PostgREST requests and two transactions. The RPC keeps them one.
+ *
+ * It is SECURITY INVOKER, so the caller's own policies decide exactly as they
+ * did for the insert this replaces. `org_id` is not sent: the RPC derives it
+ * from the client, which is one less thing a caller can assert and makes a job
+ * disagreeing with its client impossible rather than merely constrained.
+ *
+ * The trigger-assigned `number` no longer needs a cast, because the RPC's
+ * generated Args type describes parameters rather than a row.
  */
 export function useCreateJob(orgId: string) {
   const queryClient = useQueryClient()
@@ -30,12 +37,15 @@ export function useCreateJob(orgId: string) {
   return useMutation({
     mutationFn: (input: CreateJobInput) =>
       withStaleClaimsRetry(async () => {
-        const row = { ...input, org_id: orgId } satisfies JobInsert
-        const { data, error } = await supabase
-          .from('jobs')
-          .insert(row as TablesInsert<'jobs'>)
-          .select('id, number')
-          .single()
+        const { data, error } = await supabase.rpc('create_job', {
+          p_client_id: input.client_id,
+          p_title: input.title,
+          p_description: input.description ?? undefined,
+          p_site_id: input.site_id ?? undefined,
+          p_priority: input.priority ?? undefined,
+          p_requested_for: input.requested_for ?? undefined,
+          p_internal_notes: input.internal_notes ?? undefined,
+        })
         if (error) throw error
         return data
       }),
@@ -53,11 +63,40 @@ export interface UpdateJobInput {
     site_id?: string | null
     priority?: JobInsert['priority']
     requested_for?: string | null
-    internal_notes?: string | null
     lead_tech_id?: string | null
     scheduled_start?: string | null
     scheduled_end?: string | null
   }
+}
+
+/**
+ * Sets or clears a job's internal note.
+ *
+ * Separate from `useUpdateJob` because the note is a different table now, and
+ * separate from `useCreateJob` because it is edited on its own afterwards. A
+ * blank value deletes the row: absence is how "no note" is stored, so there is
+ * no such thing as a note that exists and says nothing.
+ */
+export function useSetJobInternalNotes(orgId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: { jobId: string; notes: string | null }) =>
+      withStaleClaimsRetry(async () => {
+        const { error } = await supabase.rpc('set_job_internal_notes', {
+          p_job_id: input.jobId,
+          // Not `undefined`: the RPC declares p_notes without a default, and
+          // blank is what it treats as "delete the row".
+          p_notes: input.notes ?? '',
+        })
+        if (error) throw error
+      }),
+    onSuccess: (_data, { jobId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: jobKeys.detail(orgId, jobId),
+      })
+    },
+  })
 }
 
 export function useUpdateJob(orgId: string) {

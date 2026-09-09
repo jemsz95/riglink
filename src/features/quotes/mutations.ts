@@ -3,23 +3,22 @@ import { supabase } from '@/lib/supabase/client'
 import { withStaleClaimsRetry } from '@/lib/auth/refresh-on-stale-claims'
 import { jobKeys, quoteKeys } from '@/features/jobs/keys'
 import type { LineKind, Quote, QuoteInsert } from '@/lib/supabase/db'
-import type { TablesInsert } from '@/lib/supabase/database.types'
+import type { Json, TablesInsert } from '@/lib/supabase/database.types'
 
 /**
- * Wire shape for a line insert.
+ * Wire shape for one line inside the `save_quote_draft` payload.
  *
- * `quantity` and `tax_rate` go over the wire as decimal STRINGS -- PostgREST
- * casts them to numeric server-side, which is exact, whereas a JSON number
- * round-trips through a double on the way out of the browser. The generated
- * types describe those columns as `number` because that is what they
- * deserialise to on read, so the array is cast once at the call below rather
- * than field by field.
+ * `quantity` and `tax_rate` are decimal STRINGS. The RPC declares them as
+ * `text` in its `jsonb_to_recordset` list and casts text -> numeric, so a
+ * value typed by the user reaches Postgres exactly as written and never
+ * round-trips through a double.
+ *
+ * No `org_id` and no `client_id`: the RPC reads both from the quote row it has
+ * locked. A caller cannot assert which tenant a line belongs to.
  */
 interface QuoteLineWire {
-  id?: string
-  org_id: string
-  quote_id: string
-  client_id: string
+  /** null for a line that does not exist server-side yet. */
+  id: string | null
   position: number
   kind: LineKind
   catalog_item_id: string | null
@@ -28,6 +27,20 @@ interface QuoteLineWire {
   quantity: string
   unit_price_cents: number
   tax_rate: string
+}
+
+function toWire(line: DraftLine): QuoteLineWire {
+  return {
+    id: line.id ?? null,
+    position: line.position,
+    kind: line.kind,
+    catalog_item_id: line.catalog_item_id,
+    description: line.description,
+    unit: line.unit,
+    quantity: line.quantity,
+    unit_price_cents: line.unit_price_cents,
+    tax_rate: line.tax_rate,
+  }
 }
 
 export interface DraftLine {
@@ -79,10 +92,9 @@ export function useCreateQuote(orgId: string) {
 
 export interface SaveDraftInput {
   quoteId: string
-  clientId: string
   lines: Array<DraftLine>
-  /** Ids present on the server that the editor no longer has. */
-  removedIds: Array<string>
+  /** Only the keys present are written, so a lines-only save cannot blank the
+   *  notes. Omit entirely to leave the header alone. */
   header?: {
     notes?: string | null
     terms?: string | null
@@ -92,68 +104,40 @@ export interface SaveDraftInput {
 }
 
 /**
- * Saves the whole draft: header fields, upserted lines, deleted lines.
+ * Saves the whole draft -- header, lines, deletions -- in one transaction.
  *
- * Sends the full array rather than per-keystroke patches. The editor is the
- * authority on ordering, and a positional unique constraint makes partial
- * updates order-dependent -- `unique (quote_id, position)` is DEFERRABLE
- * exactly so a reorder can pass through as one statement without tripping on
- * an intermediate collision.
+ * This was three separate PostgREST requests, and PostgREST gives each request
+ * its own transaction, so there was no way to make them one from here. The
+ * DELETE went first, which meant a dropped connection between requests two and
+ * three left the quote with its lines destroyed and nothing put back. On an
+ * 800ms autosave debounce, unattended, on site network. `save_quote_draft`
+ * exists for that reason, not to tidy this file.
  *
- * Deletes run BEFORE the upsert for the same reason: freeing the vacated
- * positions first means a swap does not momentarily duplicate one.
+ * Deletions are no longer computed client-side: the server deletes whatever is
+ * not in the array it was handed. That removes the `removedIds` bookkeeping
+ * and, with it, the chance of the two disagreeing.
+ *
+ * The RPC is SECURITY INVOKER, so RLS and the quote lock decide exactly as
+ * they did for the original requests.
  */
 export function useSaveQuoteDraft(orgId: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (input: SaveDraftInput) =>
-      withStaleClaimsRetry(async () => {
-        if (input.header) {
-          const { error } = await supabase
-            .from('quotes')
-            .update(input.header)
-            .eq('org_id', orgId)
-            .eq('id', input.quoteId)
-          if (error) throw error
-        }
-
-        if (input.removedIds.length > 0) {
-          const { error } = await supabase
-            .from('quote_line_items')
-            .delete()
-            .eq('org_id', orgId)
-            .eq('quote_id', input.quoteId)
-            .in('id', input.removedIds)
-          if (error) throw error
-        }
-
-        if (input.lines.length > 0) {
-          const rows: Array<QuoteLineWire> = input.lines.map((line) => ({
-            ...(line.id ? { id: line.id } : {}),
-            org_id: orgId,
-            quote_id: input.quoteId,
-            client_id: input.clientId,
-            position: line.position,
-            kind: line.kind,
-            catalog_item_id: line.catalog_item_id,
-            description: line.description,
-            unit: line.unit,
-            quantity: line.quantity,
-            unit_price_cents: line.unit_price_cents,
-            tax_rate: line.tax_rate,
-          }))
-
-          const { error } = await supabase
-            .from('quote_line_items')
-            .upsert(
-              rows as unknown as Array<TablesInsert<'quote_line_items'>>,
-              {
-                onConflict: 'id',
-              },
-            )
-          if (error) throw error
-        }
+      withStaleClaimsRetry(async (): Promise<Quote> => {
+        const { data, error } = await supabase.rpc('save_quote_draft', {
+          p_quote_id: input.quoteId,
+          // `as unknown as Json`: the generated Args type is the opaque `Json`
+          // union, and an array of interfaces with optional-free string fields
+          // is structurally compatible but not assignable to it without help.
+          p_lines: input.lines.map(toWire) as unknown as Json,
+          ...(input.header
+            ? { p_header: input.header as unknown as Json }
+            : {}),
+        })
+        if (error) throw error
+        return data
       }),
     onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({
@@ -199,57 +183,24 @@ export function useSendQuote(orgId: string) {
   })
 }
 
-/** Replaces a sent quote with a fresh draft, carrying the lines across. */
+/**
+ * Replaces a sent quote with a fresh draft, carrying the lines across.
+ *
+ * Also one transaction now, for the same reason: as four client-side requests
+ * this could leave an orphan draft with no lines, or a job whose only quote
+ * had been marked superseded with nothing to replace it.
+ */
 export function useSupersedeQuote(orgId: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (input: { quoteId: string; jobId: string; clientId: string }) =>
+    mutationFn: (input: { quoteId: string }) =>
       withStaleClaimsRetry(async (): Promise<Quote> => {
-        const { data: lines, error: linesError } = await supabase
-          .from('quote_line_items')
-          .select(
-            'position, kind, catalog_item_id, description, unit, quantity, unit_price_cents, tax_rate',
-          )
-          .eq('org_id', orgId)
-          .eq('quote_id', input.quoteId)
-          .order('position', { ascending: true })
-        if (linesError) throw linesError
-
-        const newQuote = {
-          org_id: orgId,
-          job_id: input.jobId,
-          client_id: input.clientId,
-        } satisfies QuoteInsert
-        const { data: quote, error: quoteError } = await supabase
-          .from('quotes')
-          .insert(newQuote as TablesInsert<'quotes'>)
-          .select('*')
-          .single()
-        if (quoteError) throw quoteError
-
-        if (lines.length > 0) {
-          const { error } = await supabase.from('quote_line_items').insert(
-            lines.map((line) => ({
-              ...line,
-              org_id: orgId,
-              quote_id: quote.id,
-              client_id: input.clientId,
-            })),
-          )
-          if (error) throw error
-        }
-
-        // The old quote stays on the record: the client saw it, so it is
-        // marked superseded rather than deleted.
-        const { error: markError } = await supabase
-          .from('quotes')
-          .update({ status: 'superseded' })
-          .eq('org_id', orgId)
-          .eq('id', input.quoteId)
-        if (markError) throw markError
-
-        return quote
+        const { data, error } = await supabase.rpc('supersede_quote', {
+          p_quote_id: input.quoteId,
+        })
+        if (error) throw error
+        return data
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: quoteKeys.all(orgId) })

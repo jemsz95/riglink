@@ -26,6 +26,12 @@ export const JOB_SORT_COLUMNS = [
   'scheduled_start',
   'created_at',
   'updated_at',
+  // Sortable since the list moved to `staff_job_list_v`: these were embedded
+  // resources, which PostgREST cannot order by in one request, and are now
+  // ordinary columns. `fromSortingState` casts a header's column id into this
+  // union, so a header is only really sortable once its id appears here.
+  'client_name',
+  'site_name',
 ] as const
 
 export type JobSortColumn = (typeof JOB_SORT_COLUMNS)[number]

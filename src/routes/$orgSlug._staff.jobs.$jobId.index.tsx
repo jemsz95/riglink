@@ -63,9 +63,10 @@ function JobDetailPage() {
   }
 
   const data = job.data
-  // sites is nullable (site_id is), clients is not -- the FK column is
-  // NOT NULL, so a job always resolves a client.
-  const timezone = data.sites?.timezone ?? org.timezone
+  // The site fields are nullable because `site_id` is; the client fields are
+  // nullable because `staff_job_detail_v` LEFT JOINs deliberately, so a job is
+  // never hidden by an unreadable client row.
+  const timezone = data.site_timezone ?? org.timezone
 
   return (
     <div className="flex flex-col gap-4">
@@ -165,20 +166,20 @@ function JobDetailPage() {
                   params={{ orgSlug, clientId: data.client_id }}
                   className="hover:text-primary underline-offset-4 hover:underline"
                 >
-                  {data.clients.name}
+                  {orDash(data.client_name)}
                 </Link>
               </DetailRow>
 
               <DetailRow icon={MapPin} label="Site">
-                {data.sites ? (
+                {data.site_id ? (
                   <>
-                    <p>{data.sites.name}</p>
+                    <p>{orDash(data.site_name)}</p>
                     <p className="text-muted-foreground text-xs">
-                      {formatAddressLine(data.sites.address)}
+                      {formatAddressLine(data.site_address)}
                     </p>
-                    {data.sites.access_notes ? (
+                    {data.site_access_notes ? (
                       <p className="text-muted-foreground mt-1 text-xs">
-                        Access: {data.sites.access_notes}
+                        Access: {data.site_access_notes}
                       </p>
                     ) : null}
                   </>
@@ -197,11 +198,11 @@ function JobDetailPage() {
                   : '—'}
               </DetailRow>
 
-              {data.client_contacts ? (
+              {data.requested_by_contact_id ? (
                 <DetailRow icon={User} label="Requested by">
-                  <p>{orDash(data.client_contacts.full_name)}</p>
+                  <p>{orDash(data.requested_by_name)}</p>
                   <p className="text-muted-foreground text-xs">
-                    {data.client_contacts.email}
+                    {orDash(data.requested_by_email)}
                   </p>
                 </DetailRow>
               ) : null}

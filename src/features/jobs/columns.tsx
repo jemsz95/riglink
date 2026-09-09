@@ -46,21 +46,21 @@ export function jobColumns(orgSlug: string): Array<AppColumnDef<JobListRow>> {
         </Link>
       ),
     }),
-    helper.accessor((row) => row.clients.name, {
-      id: 'client',
+    // Sortable now. These were display-only because ordering by a PostgREST
+    // embedded resource is not possible in one request; on `staff_job_list_v`
+    // they are ordinary columns, so the header does what it looks like it does.
+    helper.accessor('client_name', {
+      id: 'client_name',
       header: 'Client',
       meta: { label: 'Client' },
-      // Ordering by an embedded resource is not something PostgREST can do in
-      // one request, so this column is display-only rather than a header that
-      // looks clickable and silently does nothing.
-      enableSorting: false,
-      cell: ({ getValue }) => <span className="truncate">{getValue()}</span>,
+      cell: ({ getValue }) => (
+        <span className="truncate">{orDash(getValue())}</span>
+      ),
     }),
-    helper.accessor((row) => row.sites?.name ?? null, {
-      id: 'site',
+    helper.accessor('site_name', {
+      id: 'site_name',
       header: 'Site',
       meta: { label: 'Site' },
-      enableSorting: false,
       cell: ({ getValue }) => (
         <span className="text-muted-foreground truncate">
           {orDash(getValue())}
@@ -82,7 +82,7 @@ export function jobColumns(orgSlug: string): Array<AppColumnDef<JobListRow>> {
       meta: { label: 'Scheduled', nowrap: true },
       cell: ({ row, getValue }) => (
         <span className="text-muted-foreground">
-          {formatDate(getValue(), row.original.sites?.timezone)}
+          {formatDate(getValue(), row.original.site_timezone)}
         </span>
       ),
     }),

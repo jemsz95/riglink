@@ -51,11 +51,19 @@ export function useCreateSite(orgId: string) {
   return useMutation({
     mutationFn: (input: CreateSiteInput) =>
       withStaleClaimsRetry(async () => {
-        const { data, error } = await supabase
-          .from('sites')
-          .insert({ ...input, org_id: orgId })
-          .select('id, name')
-          .single()
+        // `create_site`, not a plain insert: `access_notes` moved to the
+        // staff-only `site_access_notes` table, so a site and its access
+        // notes are two statements and need one transaction. SECURITY
+        // INVOKER, and `org_id` is derived from the client inside the RPC.
+        const { data, error } = await supabase.rpc('create_site', {
+          p_client_id: input.client_id,
+          p_name: input.name,
+          p_address: input.address ?? undefined,
+          p_timezone: input.timezone ?? undefined,
+          p_access_notes: input.access_notes ?? undefined,
+          p_site_contact_name: input.site_contact_name ?? undefined,
+          p_site_contact_phone: input.site_contact_phone ?? undefined,
+        })
         if (error) throw error
         return data
       }),

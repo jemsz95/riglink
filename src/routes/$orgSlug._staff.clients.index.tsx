@@ -91,8 +91,7 @@ function ClientsPage() {
                   {orDash(client.billing_email)}
                 </p>
                 <p className="text-muted-foreground mt-auto text-xs">
-                  {client.sites[0]?.count ?? 0} sites ·{' '}
-                  {client.jobs[0]?.count ?? 0} jobs
+                  {client.site_count} sites · {client.job_count} jobs
                 </p>
               </Link>
             </li>
