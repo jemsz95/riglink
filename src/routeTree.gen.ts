@@ -22,6 +22,7 @@ import { Route as PortalOrgSlugRouteImport } from './routes/portal.$orgSlug'
 import { Route as OrgSlugStaffIndexRouteImport } from './routes/$orgSlug._staff.index'
 import { Route as OrgSlugStaffExportsRouteImport } from './routes/$orgSlug._staff.exports'
 import { Route as OrgSlugStaffInvoicesRouteImport } from './routes/$orgSlug._staff.invoices'
+import { Route as OrgSlugStaffSettingsRouteImport } from './routes/$orgSlug._staff.settings'
 import { Route as PortalOrgSlugIndexRouteImport } from './routes/portal.$orgSlug.index'
 import { Route as PortalOrgSlugRequestRouteImport } from './routes/portal.$orgSlug.request'
 import { Route as OrgSlugStaffClientsIndexRouteImport } from './routes/$orgSlug._staff.clients.index'
@@ -97,6 +98,11 @@ const OrgSlugStaffInvoicesRoute = OrgSlugStaffInvoicesRouteImport.update({
   path: '/invoices',
   getParentRoute: () => OrgSlugStaffRoute,
 } as any)
+const OrgSlugStaffSettingsRoute = OrgSlugStaffSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => OrgSlugStaffRoute,
+} as any)
 const PortalOrgSlugIndexRoute = PortalOrgSlugIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -169,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/portal/$orgSlug': typeof PortalOrgSlugRouteWithChildren
   '/$orgSlug/exports': typeof OrgSlugStaffExportsRoute
   '/$orgSlug/invoices': typeof OrgSlugStaffInvoicesRoute
+  '/$orgSlug/settings': typeof OrgSlugStaffSettingsRoute
   '/portal/$orgSlug/request': typeof PortalOrgSlugRequestRoute
   '/$orgSlug/': typeof OrgSlugStaffIndexRoute
   '/portal/$orgSlug/': typeof PortalOrgSlugIndexRoute
@@ -192,6 +199,7 @@ export interface FileRoutesByTo {
   '/login': typeof PublicLoginRoute
   '/$orgSlug/exports': typeof OrgSlugStaffExportsRoute
   '/$orgSlug/invoices': typeof OrgSlugStaffInvoicesRoute
+  '/$orgSlug/settings': typeof OrgSlugStaffSettingsRoute
   '/portal/$orgSlug/request': typeof PortalOrgSlugRequestRoute
   '/portal/$orgSlug': typeof PortalOrgSlugIndexRoute
   '/$orgSlug/clients/$clientId': typeof OrgSlugStaffClientsClientIdRoute
@@ -218,6 +226,7 @@ export interface FileRoutesById {
   '/portal/$orgSlug': typeof PortalOrgSlugRouteWithChildren
   '/$orgSlug/_staff/exports': typeof OrgSlugStaffExportsRoute
   '/$orgSlug/_staff/invoices': typeof OrgSlugStaffInvoicesRoute
+  '/$orgSlug/_staff/settings': typeof OrgSlugStaffSettingsRoute
   '/portal/$orgSlug/request': typeof PortalOrgSlugRequestRoute
   '/$orgSlug/_staff/': typeof OrgSlugStaffIndexRoute
   '/portal/$orgSlug/': typeof PortalOrgSlugIndexRoute
@@ -244,6 +253,7 @@ export interface FileRouteTypes {
     | '/portal/$orgSlug'
     | '/$orgSlug/exports'
     | '/$orgSlug/invoices'
+    | '/$orgSlug/settings'
     | '/portal/$orgSlug/request'
     | '/$orgSlug/'
     | '/portal/$orgSlug/'
@@ -267,6 +277,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/$orgSlug/exports'
     | '/$orgSlug/invoices'
+    | '/$orgSlug/settings'
     | '/portal/$orgSlug/request'
     | '/portal/$orgSlug'
     | '/$orgSlug/clients/$clientId'
@@ -292,6 +303,7 @@ export interface FileRouteTypes {
     | '/portal/$orgSlug'
     | '/$orgSlug/_staff/exports'
     | '/$orgSlug/_staff/invoices'
+    | '/$orgSlug/_staff/settings'
     | '/portal/$orgSlug/request'
     | '/$orgSlug/_staff/'
     | '/portal/$orgSlug/'
@@ -408,6 +420,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugStaffInvoicesRouteImport
       parentRoute: typeof OrgSlugStaffRoute
     }
+    '/$orgSlug/_staff/settings': {
+      id: '/$orgSlug/_staff/settings'
+      path: '/settings'
+      fullPath: '/$orgSlug/settings'
+      preLoaderRoute: typeof OrgSlugStaffSettingsRouteImport
+      parentRoute: typeof OrgSlugStaffRoute
+    }
     '/portal/$orgSlug/': {
       id: '/portal/$orgSlug/'
       path: '/'
@@ -491,6 +510,7 @@ declare module '@tanstack/react-router' {
 interface OrgSlugStaffRouteChildren {
   OrgSlugStaffExportsRoute: typeof OrgSlugStaffExportsRoute
   OrgSlugStaffInvoicesRoute: typeof OrgSlugStaffInvoicesRoute
+  OrgSlugStaffSettingsRoute: typeof OrgSlugStaffSettingsRoute
   OrgSlugStaffIndexRoute: typeof OrgSlugStaffIndexRoute
   OrgSlugStaffClientsClientIdRoute: typeof OrgSlugStaffClientsClientIdRoute
   OrgSlugStaffJobsNewRoute: typeof OrgSlugStaffJobsNewRoute
@@ -505,6 +525,7 @@ interface OrgSlugStaffRouteChildren {
 const OrgSlugStaffRouteChildren: OrgSlugStaffRouteChildren = {
   OrgSlugStaffExportsRoute: OrgSlugStaffExportsRoute,
   OrgSlugStaffInvoicesRoute: OrgSlugStaffInvoicesRoute,
+  OrgSlugStaffSettingsRoute: OrgSlugStaffSettingsRoute,
   OrgSlugStaffIndexRoute: OrgSlugStaffIndexRoute,
   OrgSlugStaffClientsClientIdRoute: OrgSlugStaffClientsClientIdRoute,
   OrgSlugStaffJobsNewRoute: OrgSlugStaffJobsNewRoute,

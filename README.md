@@ -355,6 +355,40 @@ none and BHD has three.
 export is asserted against numbers Postgres generated rather than against my
 arithmetic — the same technique as `totals.fixtures.ts`.
 
+**The dashboard is one round trip.** `dashboard_summary(org_id)` returns eight
+job counts, three quote figures and six invoice figures as one jsonb payload,
+`SECURITY INVOKER`, so every number is filtered by the caller's own policies.
+A tech therefore receives **zeroes** for everything priced — accurate, and
+misleading if rendered, because "0 outstanding" reads as "nothing owed" rather
+than "not your business". The money row is gated on role, not on the values.
+That honest-looking zero is the trap this design creates, so it is named in
+both the migration and the query module.
+
+Tiles are ordered by who is waiting: things where a client waits on us, then
+things where we wait on a client, then money. Every tile is a link to the
+filtered list that produced its number — a dashboard figure you cannot act on
+is one you stop reading.
+
+**The status palette is darker than it looks like it should be.** Fourteen
+status badges use their hue as text on a 10% tint of itself. At the lightness
+a status palette naturally wants (0.6–0.72) that lands between **2.33:1 and
+4.33:1** on a light card — every one of them failed WCAG AA, `in_progress`
+worst. The light-theme tokens are now solved for 4.85:1 against the
+composited tint, keeping hue and chroma. `closed` and `cancelled` go further
+down than contrast requires, because near-neutral tokens have only lightness
+to work with and at the passing ceiling `draft` and `closed` came out
+identical. `.storybook/docs/sunlight.browser.test.ts` asserts all of it, so
+brightening any of them fails.
+
+**The sunlight bar is AAA, not AA.** A tech reads this outdoors, in sun,
+through a scratched screen protector. WCAG AA is calibrated for an office, so
+body text on background and on card is held to 7:1 (measured: 17.8:1 and
+18.1:1 light, 17.5:1 and 16.3:1 dark), and every non-text boundary a user has
+to _find_ — focus rings, the destructive tone — to the 3:1 that WCAG 1.4.11
+requires. `FieldShell` now sets `data-density="comfortable"`, which was
+defined in the stylesheet from Phase 1 and never actually opted into: the
+48px targets it describes were dead CSS until this phase.
+
 **Money is integer cents everywhere** — database, UI, CSV export. Never a
 float. One shared `computeTotals` serves quotes, invoices and the accounting
 export so the three cannot disagree.

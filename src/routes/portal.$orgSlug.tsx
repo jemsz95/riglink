@@ -6,6 +6,7 @@ import {
   redirect,
 } from '@tanstack/react-router'
 import { AppNotFound } from '@/components/app/app-not-found'
+import { SkipLink } from '@/components/app/skip-link'
 import { UserMenu } from '@/components/app/user-menu'
 import { authStore } from '@/lib/auth/session-store'
 import { membershipsQuery } from '@/features/orgs/queries'
@@ -45,6 +46,7 @@ function PortalPage() {
 
   return (
     <div className="bg-background flex min-h-dvh flex-col">
+      <SkipLink />
       <header className="border-border bg-card border-b print:hidden">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 p-4">
           <Link
@@ -68,7 +70,11 @@ function PortalPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-4xl flex-1 p-4">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-4xl flex-1 p-4 focus-visible:outline-none"
+      >
         <Outlet />
       </main>
     </div>

@@ -61,20 +61,36 @@
      Not folded into feedback colours. Overloading them makes "work complete"
      and "operation succeeded" indistinguishable and collapses the vocabulary
      the UI can express. Ordered roughly along the lifecycle. */
-  --status-draft: oklch(0.62 0.012 80);
-  --status-requested: oklch(0.62 0.12 265);
-  --status-triaged: oklch(0.6 0.11 250);
-  --status-quoted: oklch(0.63 0.13 300);
-  --status-approved: oklch(0.6 0.11 200);
-  --status-scheduled: oklch(0.62 0.11 220);
-  --status-progress: oklch(0.72 0.14 75);
-  --status-work-complete: oklch(0.64 0.12 165);
-  --status-client-accepted: oklch(0.6 0.13 155);
-  --status-invoiced: oklch(0.55 0.1 170);
-  --status-closed: oklch(0.55 0.012 80);
-  --status-on-hold: oklch(0.66 0.1 55);
-  --status-cancelled: oklch(0.55 0.02 25);
-  --status-declined: oklch(0.58 0.15 25);
+  /* Status hues: DARKER than they look like they should be, deliberately.
+
+     Each is used as the text colour on a 10-percent tint of itself. At the
+     lightness a status palette naturally wants (0.6 to 0.72) that combination
+     lands between 2.3:1 and 4.3:1 on a light card, so all fourteen failed
+     WCAG AA -- in_progress worst, at 2.33:1. These values are solved for
+     4.85:1 against the composited tint, keeping hue and chroma so the palette
+     still reads as itself.
+
+     `closed` and `cancelled` go further down than contrast requires. A
+     near-neutral token has only lightness to work with, so at the passing
+     ceiling `draft` and `closed` came out identical; taking the terminal
+     states darker keeps them apart, and darker reads as finished anyway.
+
+     Asserted in .storybook/docs/sunlight.browser.test.ts -- brightening any
+     of these fails that test. */
+  --status-draft: oklch(0.519 0.012 80);
+  --status-requested: oklch(0.522 0.12 265);
+  --status-triaged: oklch(0.517 0.11 250);
+  --status-quoted: oklch(0.531 0.13 300);
+  --status-approved: oklch(0.495 0.11 200);
+  --status-scheduled: oklch(0.502 0.11 220);
+  --status-progress: oklch(0.522 0.14 75);
+  --status-work-complete: oklch(0.497 0.12 165);
+  --status-client-accepted: oklch(0.5 0.13 155);
+  --status-invoiced: oklch(0.504 0.1 170);
+  --status-closed: oklch(0.42 0.014 80);
+  --status-on-hold: oklch(0.526 0.1 55);
+  --status-cancelled: oklch(0.46 0.03 25);
+  --status-declined: oklch(0.534 0.15 25);
 
   /* --- Charts: categorical, ordered for maximum adjacent separation --- */
   --chart-1: oklch(0.55 0.1 175);

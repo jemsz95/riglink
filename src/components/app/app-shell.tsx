@@ -7,8 +7,10 @@ import {
   LayoutDashboard,
   MapPin,
   Receipt,
+  Settings,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { SkipLink } from './skip-link'
 import { OrgSwitcher } from './org-switcher'
 import { UserMenu } from './user-menu'
 import { cn } from '@/lib/utils'
@@ -26,6 +28,7 @@ const NAV = [
   { to: '/$orgSlug' as const, label: 'Quotes', icon: FileText, disabled: true },
   { to: '/$orgSlug/invoices' as const, label: 'Invoices', icon: Receipt },
   { to: '/$orgSlug/exports' as const, label: 'Exports', icon: Download },
+  { to: '/$orgSlug/settings' as const, label: 'Settings', icon: Settings },
 ]
 
 type NavTarget = (typeof NAV)[number]['to']
@@ -40,6 +43,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="bg-background flex min-h-dvh flex-col md:flex-row">
+      {/* First in the tab order, before the sidebar nav. */}
+      <SkipLink />
       <aside className="border-border bg-sidebar hidden w-60 shrink-0 flex-col border-r md:flex">
         <div className="border-border border-b p-2">
           <OrgSwitcher />
@@ -60,7 +65,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           <UserMenu />
         </header>
 
-        <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="min-w-0 flex-1 p-4 md:p-6 focus-visible:outline-none"
+        >
+          {children}
+        </main>
 
         <nav
           className="border-border bg-card sticky bottom-0 flex items-stretch justify-around border-t md:hidden"

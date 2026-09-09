@@ -385,18 +385,12 @@ have failed on first real use:
    continues across years; restarting each January makes two invoices share a
    number). Fixed in `20260909224000`.
 
-### Leaked password protection: a finding I caused, and could not have fixed
+### Leaked password protection: Pro-gated, and data-dependent
 
-`auth_leaked_password_protection` appeared in the security advisor during this
-phase and then vanished — it correlated exactly with the test users I gave
-passwords to in order to exercise the HTTP API, and disappeared when those
-users were deleted. The app offers magic links only, so in normal operation
-there are no password users and this finding does not appear. It is therefore
-NOT in the allowlist: an entry matching nothing is exactly the rot
-`check:advisors` fails on.
+`auth_leaked_password_protection` is in the allowlist's **`conditional`**
+section, not `accepted`, and both halves of that are load-bearing.
 
-Worth recording anyway, because it would have been unfixable if it had been
-real:
+It cannot be fixed on this plan:
 
 ```
 PATCH /v1/projects/<ref>/config/auth  {"password_hibp_enabled": true}
@@ -408,12 +402,57 @@ PATCH /v1/projects/<ref>/config/auth  {"password_hibp_enabled": true}
 It is also not expressible in `config.toml` with this CLI version — four
 candidate key spellings were probed and none produced a diff, and the CLI
 silently ignores unknown keys, so the absence of an error there means nothing.
-If passwords are ever offered in the UI, this becomes a real gap: enable it on
-Pro. Until then the mitigations are that the password grant is reachable but
-unused, `minimum_password_length = 12`, and `password_requirements` demands
-mixed case, digits and symbols.
 
-### Seeding auth users directly (for `seed.sql`)
+And it appears only once the project **has users**. I first assumed it tracked
+users _with passwords_, because it vanished when I deleted the accounts I had
+given passwords to for HTTP testing; it came back with the next fixture users,
+who have none. So it is dormant in an empty database and present in any real
+deployment. That is why `check:advisors` grew a `conditional` section: an entry
+there may match nothing without failing the build, because deleting it while
+dormant would hand the next person who creates a user an unexplained CI
+failure. A stale entry in `accepted` still fails, which is verified in both
+directions.
+
+On upgrading to Pro: run that PATCH and delete the conditional entry.
+
+### The sunlight review found a real defect
+
+Phase 6's contrast pass is not decoration — it failed. All **fourteen** job
+status badges missed WCAG AA in the light theme:
+
+| Badge              | Before                            | After     |
+| ------------------ | --------------------------------- | --------- |
+| `in_progress`      | 2.33:1                            | 4.85:1    |
+| `on_hold`          | 2.90:1                            | 4.85:1    |
+| `work_complete`    | 2.86:1                            | 4.85:1    |
+| every other status | 3.14:1 – 4.33:1                   | 4.85:1    |
+| dark theme         | 4.59:1 – 7.71:1 (already passing) | unchanged |
+
+The cause: the tokens are used as text on a 10% tint of themselves, and a
+status palette's natural lightness is too light for that on a near-white card.
+Fixed by solving each token's lightness for 4.85:1 against the composited
+tint, keeping hue and chroma so the palette still reads as itself.
+
+Fixing it introduced a second defect, caught by checking: `draft` and `closed`
+became **identical** — near-neutral tokens have only lightness to work with,
+and both hit the same passing ceiling. `closed` and `cancelled` are now pushed
+darker than contrast requires so the terminal states stay distinguishable.
+Closest remaining pair is 10.7 in sRGB distance, and colour was never the only
+signal anyway: every badge carries an icon and a label.
+
+Measured offline by converting the oklch tokens to sRGB and computing the
+ratios, because the browser test that asserts them **cannot run in this
+container** — Talos has no package manager, so Chromium's `libglib-2.0.so.0`
+is unavailable. The assertions are written against the measured values with a
+margin, so they should pass in CI, but treat them as unrun until the `browser`
+job goes green.
+
+Also fixed in this pass: no skip link existed anywhere (WCAG 2.4.1 — a
+keyboard user tabbed the whole sidebar on every page), and `FieldShell` never
+set `data-density="comfortable"`, so the 48px glove-friendly targets defined
+in Phase 1 were dead CSS.
+
+### Seeding auth users directly (for `seed.sql`)### Seeding auth users directly (for `seed.sql`)
 
 Inserting into `auth.users` by hand fails sign-in with a bare
 `500 Database error querying schema` unless the token columns are empty

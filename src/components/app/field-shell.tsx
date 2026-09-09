@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
 import { OfflineBanner } from './offline-banner'
+import { SkipLink } from './skip-link'
 import { JobStatusBadge } from '@/components/domain/job-status-badge'
 import { useUploadQueue } from '@/lib/offline/use-upload-queue'
 import type { JobStatus } from '@/lib/supabase/db'
@@ -38,7 +39,15 @@ export function FieldShell({
   const queue = useUploadQueue()
 
   return (
-    <div className="bg-background flex min-h-dvh flex-col">
+    <div
+      // Opts into the larger touch targets and row heights defined for
+      // [data-density='comfortable'] in styles.css -- 48px instead of 44px.
+      // Set here rather than on <html> so a staff table and a field card can
+      // coexist on a tablet, which is the whole reason the token is scoped.
+      data-density="comfortable"
+      className="bg-background flex min-h-dvh flex-col"
+    >
+      <SkipLink />
       <header className="border-border bg-card sticky top-0 z-10 border-b">
         <div className="flex items-center gap-2 p-3">
           <Link
@@ -66,7 +75,13 @@ export function FieldShell({
         <OfflineBanner summary={queue} />
       </header>
 
-      <main className="flex flex-1 flex-col gap-6 p-4 pb-24">{children}</main>
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex flex-1 flex-col gap-6 p-4 pb-24 focus-visible:outline-none"
+      >
+        {children}
+      </main>
     </div>
   )
 }

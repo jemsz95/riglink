@@ -2500,6 +2500,25 @@ export type Database = {
           },
         ]
       }
+      staff_member_v: {
+        Row: {
+          accepted_at: string | null
+          full_name: string | null
+          invited_at: string | null
+          org_id: string | null
+          role: Database["public"]["Enums"]["staff_role"] | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_quote_v: {
         Row: {
           client_id: string | null
@@ -2770,6 +2789,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      dashboard_summary: { Args: { p_org_id: string }; Returns: Json }
       decline_completion: {
         Args: { p_job_id: string; p_note?: string }
         Returns: Json

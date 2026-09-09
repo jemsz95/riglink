@@ -22,6 +22,15 @@
  * a failure. An exception that has outlived its reason is how an allowlist
  * turns into a place where real findings go to hide.
  *
+ * `conditional` is the one exception to that, for findings which depend on the
+ * DATA rather than the schema. `auth_leaked_password_protection` is the
+ * motivating case: it appears only once the project has users, so it is
+ * dormant every time the database is emptied after a test run and present in
+ * any real deployment. Deleting it when dormant would hand the next person who
+ * creates a user an unexplained CI failure; treating its absence as rot would
+ * fail the build for being tidy. So a conditional entry may match nothing, and
+ * is reported as dormant rather than stale.
+ *
  * POLICY
  *
  *   security     every finding must be allowlisted, at every level. There are
@@ -74,9 +83,13 @@ async function fetchLints(kind) {
 }
 
 const allowlist = JSON.parse(readFileSync(ALLOWLIST_PATH, 'utf8'))
-/** @type {Map<string, string>} cache_key -> reason */
+/** @type {Map<string, string>} cache_key -> reason; must match a finding */
 const accepted = new Map(
   Object.entries(allowlist.accepted ?? {}).map(([k, v]) => [k, String(v)]),
+)
+/** cache_key -> reason; allowed to be dormant, because it depends on data */
+const conditional = new Map(
+  Object.entries(allowlist.conditional ?? {}).map(([k, v]) => [k, String(v)]),
 )
 
 const [security, performance] = await Promise.all([
@@ -95,7 +108,9 @@ const ungatedInfo = performance.filter(
   (l) => !PERFORMANCE_GATED_LEVELS.has(l.level),
 ).length
 
-const unexpected = gated.filter((l) => !accepted.has(l.cache_key))
+const unexpected = gated.filter(
+  (l) => !accepted.has(l.cache_key) && !conditional.has(l.cache_key),
+)
 const seen = new Set(gated.map((l) => l.cache_key))
 const stale = [...accepted.keys()].filter((k) => !seen.has(k))
 
@@ -105,10 +120,16 @@ unexpected.sort(
     (rank[a.level] ?? 9) - (rank[b.level] ?? 9) || a.name.localeCompare(b.name),
 )
 
+const dormant = [...conditional.keys()].filter((k) => !seen.has(k))
+
 console.log(
   `advisors: ${gated.length} gated finding(s), ${accepted.size} accepted, ` +
+    `${conditional.size} conditional (${dormant.length} dormant), ` +
     `${ungatedInfo} performance INFO not gated`,
 )
+for (const key of dormant) {
+  console.log(`  dormant (data-dependent, not an error): ${key}`)
+}
 
 if (unexpected.length > 0) {
   console.error(
