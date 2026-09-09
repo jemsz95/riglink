@@ -3,6 +3,8 @@ import {
   ADMIN_ROLES,
   DISPATCH_ROLES,
   canAdminister,
+  canTransferOwnership,
+  isOwner,
   canDispatch,
 } from './permissions'
 import { canTransitionJobs } from '@/features/jobs/status'
@@ -53,6 +55,32 @@ describe('canTransitionJobs', () => {
       'x',
     ]) {
       expect(canTransitionJobs(role)).toBe(canDispatch(role))
+    }
+  })
+})
+
+describe('isOwner', () => {
+  it('admits only the owner', () => {
+    expect(isOwner('owner')).toBe(true)
+    for (const role of ['admin', 'dispatcher', 'tech', 'viewer', '', 'Owner']) {
+      expect(isOwner(role)).toBe(false)
+    }
+  })
+
+  /**
+   * An admin is NOT one demotion away from the owner's powers. The owner is
+   * unremovable -- a deferred constraint trigger refuses any statement that
+   * would leave an org ownerless -- and transfer_ownership is the only exit.
+   * If this ever passes for 'admin', the guarantee in the README is gone.
+   */
+  it('is strictly narrower than canAdminister', () => {
+    expect(canAdminister('admin')).toBe(true)
+    expect(isOwner('admin')).toBe(false)
+  })
+
+  it('is what canTransferOwnership means', () => {
+    for (const role of ['owner', 'admin', 'dispatcher', 'tech', 'nonsense']) {
+      expect(canTransferOwnership(role)).toBe(isOwner(role))
     }
   })
 })

@@ -176,6 +176,9 @@ enabled = true
 max_buckets = 10
 max_indexes = 5
 
+[storage.image_transformation]
+enabled = true
+
 # Vector Buckets is available to Supabase Pro plan.
 # [storage.vector.buckets.documents-openai]
 
@@ -183,13 +186,43 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
+# BEFORE THE FIRST REAL DEPLOY, change this to the hosting hostname and run
+# `npm run config:push`. Magic links and OAuth both redirect to `site_url`, so
+# while it says localhost a link opened on a phone lands on a dev server that
+# is not there -- and the failure looks like "magic links are broken" rather
+# than "the config is still pointing at a laptop".
+#
+#   site_url = "https://my.riglink.app"
+#
+# Wait until `tofu output host_state` (infra/tofu) says HOST_ACTIVE: pushed
+# earlier, every magic link points at a hostname that does not serve yet.
 site_url = "http://localhost:3000"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
+# An EXACT-MATCH allowlist (with glob support) of places auth will send a user
+# holding a token. A redirect that is not listed is silently DISCARDED and
+# `site_url` is used instead -- which is why a magic link opened from a remote
+# workspace lands on localhost even though the app asked for the right URL.
+# The failure gives no error anywhere; the link just goes to the wrong place.
 additional_redirect_urls = [
   "http://localhost:3000/**",
   "http://127.0.0.1:3000/**",
+
+  # Production. Firebase Hosting; see infra/tofu.
+  "https://my.riglink.app/**",
+
+  # Remote dev workspaces (Coder). The app is reached at
+  # `<port>--<agent>--<workspace>--<owner>.<coder-domain>`, so the port and the
+  # branch are both in the subdomain and change as you work -- pinning one exact
+  # host would break on the next branch. `config/dev-hosts.ts` solves the same
+  # problem for Vite's host check, but config.toml is static TOML and cannot
+  # derive this from the environment.
+  #
+  # SCOPE: this lets any workspace on that Coder deployment receive auth tokens
+  # for this project. It is an internal host behind corporate SSO and a
+  # development convenience -- delete this line for a production-only project.
+  "https://*.coder.corp.thinkdatadynamics.com/**",
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 # Bounds the revocation window for JWT-borne authorization claims. See the
@@ -324,10 +357,23 @@ max_frequency = "5s"
 # Force log out if the user has been inactive longer than the specified duration.
 # inactivity_timeout = "8h"
 
-# This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
-# [auth.hook.before_user_created]
-# enabled = true
-# uri = "pg-functions://postgres/auth/before-user-created-hook"
+# SIGNUP IS INVITE-ONLY, and this is what enforces it.
+#
+# `enable_signup = true` above stays true on purpose: turning it off would
+# block invited people too, since they create their own account from the magic
+# link. The decision of WHO may sign up belongs in the database, which already
+# knows who was invited -- so this hook rejects an address with no pending
+# `org_invitations` or `client_contacts` row.
+#
+# Fires for OAuth as well as email, so enabling Google later does not open a
+# side entrance. It fires only on user CREATION, so existing users are
+# unaffected and this cannot lock out anyone already using the system.
+#
+# On an empty project the hook allows the first signup -- there is nobody to
+# issue an invitation yet. See 20260912211000_invite_only_signup.sql.
+[auth.hook.before_user_created]
+enabled = true
+uri = "pg-functions://postgres/app/before_user_created_hook"
 
 # This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
 #

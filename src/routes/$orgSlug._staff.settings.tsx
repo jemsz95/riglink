@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { toast } from 'sonner'
@@ -8,13 +9,28 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { canAdminister } from '@/features/orgs/permissions'
+import { canAdminister, isOwner } from '@/features/orgs/permissions'
 import {
   orgMembersQuery,
   orgSettingsQuery,
 } from '@/features/orgs/members-queries'
-import { useUpdateOrgSettings } from '@/features/orgs/settings-mutations'
+import {
+  useTransferOwnership,
+  useUpdateOrgSettings,
+} from '@/features/orgs/settings-mutations'
+import type { OrgMemberRow } from '@/features/orgs/settings-mutations'
+import { InviteTeammate } from '@/features/orgs/invite-teammate'
+import { useAuth } from '@/lib/auth/session-store'
+import { toUserMessage } from '@/lib/supabase/errors'
 import { useAppForm } from '@/lib/form/form-hook'
 import { formatDate } from '@/lib/format'
 
@@ -32,7 +48,9 @@ export const Route = createFileRoute('/$orgSlug/_staff/settings')({
  */
 function SettingsPage() {
   const { org, role } = OrgRoute.useRouteContext()
+  const auth = useAuth()
   const members = useQuery(orgMembersQuery(org.id))
+  const [handingTo, setHandingTo] = useState<OrgMemberRow | null>(null)
   const settings = useQuery(orgSettingsQuery(org.id))
   const update = useUpdateOrgSettings(org.id)
 
@@ -224,6 +242,12 @@ function SettingsPage() {
         </form>
       )}
 
+      <InviteTeammate
+        orgId={org.id}
+        userId={auth.userId ?? ''}
+        timezone={org.timezone}
+      />
+
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium">Team</h2>
         {members.isError ? (
@@ -250,10 +274,30 @@ function SettingsPage() {
                       : `Invited ${formatDate(member.invited_at, org.timezone)}`}
                   </span>
                 </div>
-                <Badge variant="outline">{member.role}</Badge>
+                <div className="flex items-center gap-2">
+                  {isOwner(role) &&
+                    member.role !== 'owner' &&
+                    member.accepted_at && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setHandingTo(member)}
+                      >
+                        Make owner
+                      </Button>
+                    )}
+                  <Badge variant="outline">{member.role}</Badge>
+                </div>
               </li>
             ))}
           </ul>
+        )}
+        {isOwner(role) && (
+          <p className="text-muted-foreground max-w-xl text-xs">
+            You are the owner. Nobody can remove you, including you -- the only
+            way out is to hand the organisation to someone else, which makes you
+            an admin.
+          </p>
         )}
         <p className="text-muted-foreground max-w-xl text-xs">
           Names come from each person&apos;s own profile. Someone who has been
@@ -261,6 +305,71 @@ function SettingsPage() {
           the row says so rather than guessing one.
         </p>
       </section>
+
+      <TransferOwnershipDialog
+        orgId={org.id}
+        orgName={org.name}
+        member={handingTo}
+        onClose={() => setHandingTo(null)}
+      />
     </div>
+  )
+}
+
+/**
+ * Deliberately a confirm step rather than a menu item that just fires. This is
+ * the one action in the app a user cannot undo alone: afterwards they are an
+ * admin, and only the new owner can hand it back.
+ */
+function TransferOwnershipDialog({
+  orgId,
+  orgName,
+  member,
+  onClose,
+}: {
+  orgId: string
+  orgName: string
+  member: OrgMemberRow | null
+  onClose: () => void
+}) {
+  const transfer = useTransferOwnership(orgId)
+
+  return (
+    <Dialog open={member !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            Hand {orgName} to {member?.full_name ?? 'this person'}?
+          </DialogTitle>
+          <DialogDescription>
+            They become the owner and you become an admin. You will no longer be
+            able to delete the organisation or transfer it again -- only they
+            will.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            disabled={transfer.isPending}
+            onClick={() => {
+              if (!member) return
+              transfer.mutate(member.user_id, {
+                onSuccess: () => {
+                  toast.success(
+                    `${member.full_name ?? 'They'} now own ${orgName}`,
+                  )
+                  onClose()
+                },
+                onError: (error) => toast.error(toUserMessage(error)),
+              })
+            }}
+          >
+            Transfer ownership
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

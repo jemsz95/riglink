@@ -1,0 +1,8 @@
+{
+  "$comment": [
+    "Citext comparisons flagged by scripts/check-sql-conventions.mjs that are",
+    "correct as written. Each needs a reason. An entry that no longer matches",
+    "any function fails the check too, so exceptions cannot rot."
+  ],
+  "accepted": {}
+}

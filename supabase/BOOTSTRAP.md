@@ -452,7 +452,114 @@ keyboard user tabbed the whole sidebar on every page), and `FieldShell` never
 set `data-density="comfortable"`, so the 48px glove-friendly targets defined
 in Phase 1 were dead CSS.
 
-### Seeding auth users directly (for `seed.sql`)### Seeding auth users directly (for `seed.sql`)
+### Hosting: why not a Storage bucket
+
+The plan was to serve the SPA from a public Storage bucket. It was built,
+deployed and then abandoned, because Storage cannot host HTML. Measured
+against the live project:
+
+| Check                                                                 | Result                                                                                             |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Object metadata after upload                                          | correct: `mimetype: text/html; charset=utf-8`, `cacheControl: public, max-age=31536000, immutable` |
+| `index.html` served from the public endpoint                          | **`content-type: text/plain`**                                                                     |
+| Same bytes as `.html`, `.txt`, `.bin`, each with explicit `text/html` | all `text/plain` — the content type is refused, not the extension                                  |
+| Hashed asset served                                                   | correct content type, but **`cache-control: no-cache`** despite the stored `immutable`             |
+| Cache-busted request (CDN `MISS`)                                     | identical on both counts — origin behaviour, not a stale edge copy                                 |
+| Missing object                                                        | JSON `{"error":"not_found"}` — no SPA fallback                                                     |
+
+So the bucket cannot be a web root: a browser shows the app's source, and every
+deep link 404s. A Cloudflare Worker in front fixed both and was verified
+working against the live bucket — then deleted, because proxying a bucket
+through Cloudflare is worse than serving the files from a static host directly.
+Hosting is now Firebase Hosting. See README.
+
+This also means an earlier suggestion of mine — hash routing, served straight
+from the bucket — was never viable: it addresses the fallback problem and does
+nothing about the content type.
+
+### Retiring the `app` bucket: what could not be automated
+
+`20260910010000` sets `public = false`, so nothing is served from it. The
+bucket and its 132 objects are still there, and **could not be removed from
+here**:
+
+| Attempt                                                   | Result                                                                                             |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `delete from storage.buckets` in a migration              | refused by Supabase's `storage.protect_delete()` trigger, which exists to prevent orphaned objects |
+| `DELETE /v1/projects/<ref>/storage/buckets/app`           | HTTP 404 — the Management API is GET-only for buckets                                              |
+| `POST /v1/projects/<ref>/storage/buckets/app/empty`       | HTTP 404 — no such endpoint                                                                        |
+| `supabase storage rm -r ss:///app/assets`                 | `{"deleted":[]}` and **exit 0** — no error, nothing deleted                                        |
+| `supabase storage rm ss:///app/ct-probe.bin` (exact path) | same: `{"deleted":[]}`, exit 0                                                                     |
+
+The CLI's `rm` evidently needs the service-role key and reports nothing when it
+has not got it, which is worth knowing before trusting it in a script.
+
+To finish the job, either delete the bucket in the dashboard (Storage →
+`app` → Delete), or with the service-role key:
+
+```
+curl -X DELETE "$SUPABASE_URL/storage/v1/bucket/app/empty" \
+  -H "Authorization: Bearer $SERVICE_ROLE_KEY"
+curl -X DELETE "$SUPABASE_URL/storage/v1/bucket/app" \
+  -H "Authorization: Bearer $SERVICE_ROLE_KEY"
+```
+
+Nothing references it — no policy, no application code — so it is inert cruft
+rather than a live surface.
+
+### Invite-only sign-up
+
+Verified against the live API, not just in SQL.
+
+| Attempt                                                             | Result                                     |
+| ------------------------------------------------------------------- | ------------------------------------------ |
+| `POST /auth/v1/otp` for an uninvited address                        | `403` "This email has not been invited…"   |
+| Invited staff address, **mixed case** (`Invited-Staff@Example.ORG`) | `200` — user created                       |
+| Invitation past `expires_at`                                        | `403`                                      |
+| Invited client contact                                              | allowed                                    |
+| Address with no email in the payload                                | `403`                                      |
+| Existing user signing in                                            | unaffected — the hook fires on CREATE only |
+
+Two bugs were found by testing this against the real endpoint rather than by
+calling the function as the owner, which succeeds and proves nothing:
+
+1. **`citext` comparisons were case-sensitive.** See the README. It affected
+   `bootstrap_session` too, which had shipped three phases earlier. Fixed in
+   `20260912212000` with `operator(extensions.=)`, and guarded by
+   `npm run check:sql` — which itself had to be fixed twice before it caught
+   a deliberately reintroduced bug: `proconfig::text like '%search_path=""%'`
+   never matches because the text rendering escapes the quotes, so it was
+   examining zero functions; and the regex excluded a `.` before the column
+   name, which is the common `c.email = …` shape.
+
+2. **The hook could not reach `extensions`.** `supabase_auth_admin` had no
+   `USAGE` on that schema, so every sign-up — invited or not — failed with
+   `500 "Error running hook URI"`. GoTrue fails closed, so this broke sign-up
+   entirely for a few minutes. Fixed in `20260912213000`.
+
+### Operating it
+
+Invite a colleague from **Settings → Invite a colleague**. The two things the
+UI deliberately does not do, because they are operator actions:
+
+```sql
+-- Onboard a NEW contractor: lets this address create its own organisation.
+insert into public.org_invitations (org_id, email, role)
+values (null, 'owner@newfirm.com', null);
+
+-- Escape hatch: re-admit an address when nobody is left to invite them.
+insert into public.org_invitations (org_id, email, role)
+values ('<org-id>', 'admin@firm.com', 'admin');
+```
+
+The `org_invitations_admin_insert` policy requires `org_id is not null`, which
+is what stops an org admin minting a platform invitation from the app. A
+platform operator now mints them from `/platform/invitations` instead of by
+hand — `platform_invite_founder()` is `SECURITY DEFINER` and bypasses that
+policy without it being widened. The SQL above remains the recovery path when
+there is no operator to hand.
+
+### Seeding auth users directly (for `seed.sql`)
 
 Inserting into `auth.users` by hand fails sign-in with a bare
 `500 Database error querying schema` unless the token columns are empty
@@ -467,3 +574,63 @@ phone_change_token, reauthentication_token  -- all '' , never NULL
 
 Prefer the Auth admin API for real seeding. If SQL is unavoidable, set those to
 `''` and `email_confirmed_at` to `now()`.
+
+## Platform administration
+
+### Granting the role
+
+Deliberately not an RPC. An RPC that lets one operator mint another makes
+compromise of a single session self-replicating and permanent — an attacker
+grants themselves, revokes you, and you are locked out of your own platform.
+The recovery path stays the `service_role` key, which never reaches a browser:
+
+```sql
+insert into public.platform_admins (user_id, granted_by, note)
+values ('<user-id>', '<your-user-id>', 'second operator, agreed <date>');
+```
+
+Revoking is a `delete`, and a deferred constraint trigger refuses to leave the
+table empty. Swapping operators in one transaction (delete + insert) works;
+deleting the last one does not.
+
+The first user on an empty deployment is granted it automatically by
+`app.handle_new_user()`, guarded on **two** conditions — `platform_admins` is
+empty _and_ `auth.users` holds nobody else. The second is not belt-and-braces:
+with only the first, revoking the last operator re-arms the trigger, and the
+next person to sign up — including an invited _client contact_ — would silently
+inherit the platform.
+
+### Verified against the live project
+
+| Check                                                                                        | Result                                                                                                                         |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Platform admin reads Beta's `jobs` / `clients` / `sites` / `org_members` / `client_contacts` | 0 rows each, while their own org returns 2 jobs                                                                                |
+| Platform admin reads Beta's owner `profiles` row                                             | 0 rows                                                                                                                         |
+| `select * from pg_policies where qual ~ 'is_platform_admin'`                                 | empty — the invariant, checkable                                                                                               |
+| `public.org_suspensions` as `authenticated`                                                  | `42501 permission denied` — structurally denied, not merely filtered                                                           |
+| Every `platform_*` RPC as a non-operator                                                     | `42501 not a platform administrator`                                                                                           |
+| Suspended org, as its own owner: jobs / clients / sites / members / colleague profile        | 0 rows each                                                                                                                    |
+| Suspended org, as its own owner: the `organizations` row                                     | **still visible** — the app can say "suspended" rather than "not found"                                                        |
+| Suspended org, as a portal contact: jobs / clients                                           | 0 rows; `my_memberships()` reports `org_suspended: true`                                                                       |
+| Suspended org, `accept_completion()` as its own primary contact                              | `42501` — `app.portal_contact_for()` is the guard for all five portal write RPCs                                               |
+| Suspended org under `overflow: true`                                                         | `member_orgs_all()` returns 1, `staff_orgs()` returns 0, jobs 0 — the live-read branch a claims-based design would have missed |
+| Unsuspend, same session, no token refresh                                                    | access returns immediately                                                                                                     |
+| Owner demoting themselves / deleting their own membership                                    | `23514 would be left with no owner`, hint names `transfer_ownership`                                                           |
+| Promoting a second owner                                                                     | `23505 org_members_one_owner_per_org`                                                                                          |
+| `transfer_ownership` as a tech                                                               | `42501 only the owner may transfer ownership`                                                                                  |
+| `transfer_ownership` as the owner                                                            | roles swap, both claim epochs bump to 2                                                                                        |
+| `accept_completion()` holding only a job uuid, with no contact row                           | `42501 not authorised to sign off this job` — succeeded before the fix                                                         |
+| `accept_completion()` as the real primary contact                                            | approved, actor recorded, job → `client_accepted`                                                                              |
+
+### Guards proven to fail
+
+A check that has never failed has not been tested. Both were re-broken
+deliberately and caught:
+
+| Probe                                                     | Result                                                      |
+| --------------------------------------------------------- | ----------------------------------------------------------- |
+| A function with a bare `email =` under `search_path = ''` | `check:sql` flagged `app.zz_probe_citext compares email`    |
+| `organizations.slug` removed from the inventory           | `check:portal-exposure` flagged `public.organizations.slug` |
+
+`check:portal-exposure` reports **10 tables, 160 columns** after the accessor
+family fix — it was 9 and 147, with `organizations` unexamined.

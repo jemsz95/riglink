@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { Building2, LifeBuoy } from 'lucide-react'
+import { Building2, LifeBuoy, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -28,8 +28,12 @@ function PickWorkspacePage() {
   const { data } = useSuspenseQuery(membershipsQuery())
   const navigate = useNavigate()
 
-  const soleDestination =
-    data.orgs.length === 1 && data.portal_clients.length === 0
+  // A platform operator ALWAYS gets the picker, even with one workspace.
+  // Otherwise the sole-destination redirect below fires on every visit to `/`
+  // and there is no route left from which to reach /platform.
+  const soleDestination = data.is_platform_admin
+    ? null
+    : data.orgs.length === 1 && data.portal_clients.length === 0
       ? { kind: 'staff' as const, slug: data.orgs[0].slug }
       : data.orgs.length === 0 && data.portal_clients.length === 1
         ? { kind: 'portal' as const, slug: data.portal_clients[0].org_slug }
@@ -51,6 +55,34 @@ function PickWorkspacePage() {
           },
     )
     return null
+  }
+
+  if (
+    data.orgs.length === 0 &&
+    data.portal_clients.length === 0 &&
+    data.is_platform_admin
+  ) {
+    return (
+      <div className="bg-background flex min-h-dvh items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Platform administration</CardTitle>
+            <CardDescription>
+              You operate this deployment. You have no workspace of your own,
+              which is normal -- and you cannot see inside anyone else's.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              className="min-h-touch w-full"
+              onClick={() => void navigate({ to: '/platform' })}
+            >
+              Open platform administration
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   if (data.orgs.length === 0 && data.portal_clients.length === 0) {
@@ -112,11 +144,35 @@ function PickWorkspacePage() {
                     <span className="flex-1 text-sm font-medium">
                       {org.name}
                     </span>
+                    {org.suspended && (
+                      <Badge variant="destructive">Suspended</Badge>
+                    )}
                     <Badge variant="secondary">{org.role}</Badge>
                   </button>
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {data.is_platform_admin && (
+          <section className="mb-6">
+            <h2 className="text-muted-foreground mb-2 text-2xs font-medium uppercase tracking-wider">
+              Platform
+            </h2>
+            <button
+              type="button"
+              onClick={() => void navigate({ to: '/platform' })}
+              className="border-border bg-card hover:bg-accent/10 min-h-touch flex w-full items-center gap-3 rounded-lg border p-3 text-left shadow-e1 transition-colors"
+            >
+              <ShieldCheck
+                className="text-muted-foreground size-4 shrink-0"
+                aria-hidden
+              />
+              <span className="flex-1 text-sm font-medium">
+                Platform administration
+              </span>
+            </button>
           </section>
         )}
 

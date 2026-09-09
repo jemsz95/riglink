@@ -1,7 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
-import { withStaleClaimsRetry } from '@/lib/auth/refresh-on-stale-claims'
+import {
+  refreshSessionForStaleClaims,
+  withStaleClaimsRetry,
+} from '@/lib/auth/refresh-on-stale-claims'
 import { orgKeys } from './queries'
+import { memberKeys } from './members-queries'
 
 export interface OrgSettingsInput {
   name: string
@@ -60,4 +64,37 @@ export interface OrgMemberRow {
   invited_at: string | null
   full_name: string | null
   email: string | null
+}
+
+/**
+ * Hands the organisation to another member.
+ *
+ * The caller becomes an `admin` in the same transaction, and there is no way
+ * back except the new owner transferring it again. Both halves are one RPC
+ * because the ordering matters: an org may have exactly one owner, enforced by
+ * a partial unique index that cannot be deferred, so the demote must land
+ * before the promote.
+ *
+ * Both users' claim epochs bump, which invalidates the token the caller is
+ * holding RIGHT NOW -- so refresh proactively rather than letting their next
+ * action fail with P0001 and self-heal.
+ */
+export function useTransferOwnership(orgId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (newOwnerId: string) =>
+      withStaleClaimsRetry(async () => {
+        const { error } = await supabase.rpc('transfer_ownership', {
+          p_org_id: orgId,
+          p_new_owner_id: newOwnerId,
+        })
+        if (error) throw error
+      }),
+    onSuccess: async () => {
+      await refreshSessionForStaleClaims()
+      void queryClient.invalidateQueries({ queryKey: memberKeys.list(orgId) })
+      void queryClient.invalidateQueries({ queryKey: orgKeys.memberships() })
+    },
+  })
 }

@@ -26,7 +26,8 @@ export function parseEnv(source: Record<string, unknown>): Env {
       .join('\n')
     throw new Error(
       `Invalid environment configuration:\n${detail}\n\n` +
-        'Copy .env.example to .env.local and fill it in.',
+        'The committed .env has production values; check whether an override\n' +
+        'in .env.local or .env.development.local blanks one of them.',
     )
   }
   return result.data

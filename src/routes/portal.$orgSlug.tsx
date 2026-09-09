@@ -6,6 +6,7 @@ import {
   redirect,
 } from '@tanstack/react-router'
 import { AppNotFound } from '@/components/app/app-not-found'
+import { AppSuspended } from '@/components/app/app-suspended'
 import { SkipLink } from '@/components/app/skip-link'
 import { UserMenu } from '@/components/app/user-menu'
 import { authStore } from '@/lib/auth/session-store'
@@ -29,7 +30,11 @@ export const Route = createFileRoute('/portal/$orgSlug')({
     )
     if (entries.length === 0) throw notFound()
 
-    return { orgName: entries[0].org_name, clients: entries }
+    return {
+      orgName: entries[0].org_name,
+      clients: entries,
+      suspended: entries[0].org_suspended,
+    }
   },
   notFoundComponent: () => (
     <AppNotFound
@@ -41,7 +46,7 @@ export const Route = createFileRoute('/portal/$orgSlug')({
 })
 
 function PortalPage() {
-  const { orgName, clients } = Route.useRouteContext()
+  const { orgName, clients, suspended } = Route.useRouteContext()
   const { orgSlug } = Route.useParams()
 
   return (
@@ -75,7 +80,11 @@ function PortalPage() {
         tabIndex={-1}
         className="mx-auto w-full max-w-4xl flex-1 p-4 focus-visible:outline-none"
       >
-        <Outlet />
+        {suspended ? (
+          <AppSuspended orgName={orgName} audience="portal" />
+        ) : (
+          <Outlet />
+        )}
       </main>
     </div>
   )

@@ -1,0 +1,36 @@
+-- ============================================================================
+-- Fix: the signup hook could not reach the `extensions` schema.
+--
+-- `app.before_user_created_hook` takes and compares `extensions.citext`, and
+-- runs as `supabase_auth_admin` -- which had no USAGE on that schema. GoTrue
+-- reported only
+--
+--   500 {"error_code":"unexpected_failure",
+--        "msg":"Error running hook URI: pg-functions://postgres/app/..."}
+--
+-- with the real cause in the Postgres log, so from the client every signup
+-- simply broke. Invited and uninvited alike: the hook could not run, and
+-- GoTrue fails closed.
+--
+-- Why this and not the alternatives:
+--
+--   * Making the hook SECURITY DEFINER would work, and would also discard the
+--     property that makes the other hook auditable -- `custom_access_token_hook`
+--     is INVOKER precisely so that what it can see is a read policy in the
+--     catalogue rather than "whatever the owner can reach".
+--   * Dropping citext for `lower(email::text)` would work, and would stop the
+--     comparison using the citext index that `client_contacts.email` already
+--     has, while quietly changing what the column means.
+--
+-- Granting USAGE is the smaller change. It does not grant anything new in
+-- substance: functions in `extensions` already carry the PostgreSQL default of
+-- EXECUTE to PUBLIC -- the `revoke_public_execute` event trigger covers only
+-- `public` and `app` -- so the schema gate was the sole obstacle.
+-- `supabase_auth_admin` is a Supabase-managed internal role that already owns
+-- the auth schema and every user record in it.
+--
+-- Caught by attempting a real signup against the live API rather than by
+-- calling the function as the owner, which succeeds and proves nothing.
+-- ============================================================================
+
+grant usage on schema extensions to supabase_auth_admin;

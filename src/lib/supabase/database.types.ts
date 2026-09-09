@@ -1082,6 +1082,76 @@ export type Database = {
           },
         ]
       }
+      org_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_at: string
+          invited_by: string | null
+          note: string | null
+          org_id: string | null
+          revoked_at: string | null
+          role: Database["public"]["Enums"]["staff_role"] | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          note?: string | null
+          org_id?: string | null
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["staff_role"] | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          note?: string | null
+          org_id?: string | null
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["staff_role"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_invitations_accepted_by_fkey"
+            columns: ["accepted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_members: {
         Row: {
           accepted_at: string | null
@@ -1119,6 +1189,64 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_suspensions: {
+        Row: {
+          created_at: string
+          id: string
+          lifted_at: string | null
+          lifted_by: string | null
+          lifted_reason: string | null
+          org_id: string
+          reason: string
+          suspended_at: string
+          suspended_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lifted_at?: string | null
+          lifted_by?: string | null
+          lifted_reason?: string | null
+          org_id: string
+          reason: string
+          suspended_at?: string
+          suspended_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lifted_at?: string | null
+          lifted_by?: string | null
+          lifted_reason?: string | null
+          org_id?: string
+          reason?: string
+          suspended_at?: string
+          suspended_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_suspensions_lifted_by_fkey"
+            columns: ["lifted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_suspensions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_suspensions_suspended_by_fkey"
+            columns: ["suspended_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1170,6 +1298,94 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      platform_admins: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_admins_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_admins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_audit_events: {
+        Row: {
+          action: string
+          actor_user_id: string
+          created_at: string
+          id: number
+          invitation_id: string | null
+          org_id: string | null
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          created_at?: string
+          id?: never
+          invitation_id?: string | null
+          org_id?: string | null
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          created_at?: string
+          id?: never
+          invitation_id?: string | null
+          org_id?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_audit_events_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_audit_events_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "org_invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_audit_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -2799,6 +3015,73 @@ export type Database = {
         Returns: Json
       }
       my_memberships: { Args: never; Returns: Json }
+      platform_invite_founder: {
+        Args: { p_email: string; p_note?: string }
+        Returns: string
+      }
+      platform_list_audit_events: {
+        Args: { p_limit?: number }
+        Returns: {
+          action: string
+          actor_name: string
+          created_at: string
+          id: number
+          invitation_id: string
+          org_id: string
+          org_name: string
+          reason: string
+        }[]
+      }
+      platform_list_founder_invitations: {
+        Args: never
+        Returns: {
+          accepted_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_at: string
+          note: string
+          revoked_at: string
+        }[]
+      }
+      platform_list_org_admins: {
+        Args: { p_org_id: string }
+        Returns: {
+          accepted_at: string
+          email: string
+          full_name: string
+          role: Database["public"]["Enums"]["staff_role"]
+          user_id: string
+        }[]
+      }
+      platform_list_orgs: {
+        Args: never
+        Returns: {
+          admins: number
+          created_at: string
+          dispatchers: number
+          id: string
+          members: number
+          name: string
+          owners: number
+          slug: string
+          suspended_at: string
+          suspension_reason: string
+          techs: number
+        }[]
+      }
+      platform_revoke_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: undefined
+      }
+      platform_suspend_org: {
+        Args: { p_org_id: string; p_reason: string }
+        Returns: undefined
+      }
+      platform_unsuspend_org: {
+        Args: { p_org_id: string; p_reason?: string }
+        Returns: undefined
+      }
       save_quote_draft: {
         Args: { p_header?: Json; p_lines: Json; p_quote_id: string }
         Returns: {
@@ -2961,6 +3244,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      transfer_ownership: {
+        Args: { p_new_owner_id: string; p_org_id: string }
+        Returns: undefined
       }
     }
     Enums: {

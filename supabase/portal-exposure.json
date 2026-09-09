@@ -199,6 +199,24 @@
         "updated_at": "When it last changed.",
         "created_by": "ACCEPTED RESIDUAL: opaque staff uuid."
       }
+    },
+    "organizations": {
+      "why_readable": "The contractor whose portal they are looking at. organizations_portal_select (app.portal_orgs()) hands a contact the org row so the portal shell can render a name and branding from the URL slug. This table was invisible to this check until the predicate was widened to match the whole app.portal_* family -- it was the only portal-readable table using an accessor other than portal_clients().",
+      "columns": {
+        "id": "The contractor's id; already on every row they can read.",
+        "slug": "In the URL they are looking at.",
+        "name": "The contractor's name -- the point of the policy.",
+        "logo_path": "Branding, rendered in the portal shell.",
+        "brand_color": "Branding, rendered in the portal shell.",
+        "timezone": "Renders their own job dates in the contractor's zone.",
+        "currency": "Formats their own quote and invoice amounts.",
+        "default_tax_rate": "REVIEW: the contractor's DEFAULT tax rate, shown nowhere in the portal. The rate that applied to them is already on their own quote and invoice lines. Here by accident of the row, not by decision.",
+        "invoice_prefix": "REVIEW: appears on their own invoice numbers anyway, so the exposure is nil -- but it was never signed off.",
+        "invoice_terms_days": "REVIEW: the contractor's DEFAULT payment terms. Their own invoice already carries its own due date.",
+        "created_at": "When the contractor's account was created.",
+        "updated_at": "When it last changed.",
+        "created_by": "ACCEPTED RESIDUAL: opaque staff uuid, same criterion as clients.created_by."
+      }
     }
   }
 }

@@ -1,0 +1,36 @@
+-- ============================================================================
+-- Retire the `app` bucket. Hosting moved to Cloudflare Workers Static Assets.
+--
+-- The bucket was created earlier to host the built SPA and cannot do that job:
+-- Storage serves `text/html` as `text/plain` under any filename (verified with
+-- the same bytes uploaded as .html, .txt and .bin, all with an explicit
+-- text/html, all served as text/plain) and has no SPA fallback. So a browser
+-- shows the app's source and every deep link returns JSON.
+--
+-- The workaround was a hand-written Cloudflare Worker that set the content type
+-- and served index.html for unmatched paths. That has been deleted, because it
+-- was the wrong shape: once Cloudflare is involved at all, serving the files
+-- FROM Cloudflare beats proxying a bucket through it -- one hop instead of two,
+-- no second CDN in front of the one Storage already has, free static asset
+-- requests instead of a billed Worker invocation per asset, and
+-- `not_found_handling = "single-page-application"` instead of ~180 lines of
+-- routing code.
+--
+-- WHY THIS ONLY FLIPS `public` INSTEAD OF DROPPING THE BUCKET
+--
+-- `delete from storage.buckets` is refused by Supabase's own
+-- `storage.protect_delete()` trigger, which exists to stop orphaned objects.
+-- The Management API has no bucket delete endpoint (GET only -- POST /empty
+-- and DELETE both 404). `supabase storage rm` returns `{"deleted":[]}` with no
+-- error even for an exact object path, so it evidently needs the service-role
+-- key and fails silently without it.
+--
+-- So this makes the bucket inert -- nothing is served from it any more -- and
+-- the objects and the bucket itself need one manual step with the service-role
+-- key or two clicks in the dashboard. See supabase/BOOTSTRAP.md.
+--
+-- Left as a migration rather than a note so the repo still describes the live
+-- state: this bucket is retired, not in use, and not serving anything.
+-- ============================================================================
+
+update storage.buckets set public = false where id = 'app';

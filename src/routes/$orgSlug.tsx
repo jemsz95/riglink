@@ -5,6 +5,7 @@ import {
   redirect,
 } from '@tanstack/react-router'
 import { AppNotFound } from '@/components/app/app-not-found'
+import { AppSuspended } from '@/components/app/app-suspended'
 import { authStore } from '@/lib/auth/session-store'
 import { membershipsQuery } from '@/features/orgs/queries'
 import type { OrgMembership } from '@/features/orgs/queries'
@@ -32,7 +33,11 @@ export const Route = createFileRoute('/$orgSlug')({
     if (!org) throw notFound()
 
     // Merged into every child route's context.
-    return { org, role: org.role satisfies OrgMembership['role'] }
+    return {
+      org,
+      role: org.role satisfies OrgMembership['role'],
+      suspended: org.suspended,
+    }
   },
   notFoundComponent: () => (
     <AppNotFound
@@ -40,5 +45,17 @@ export const Route = createFileRoute('/$orgSlug')({
       body="You may not have access to this workspace, or it may have been renamed."
     />
   ),
-  component: () => <Outlet />,
+  component: RouteShell,
 })
+
+/**
+ * A suspended workspace is NOT a 404. Throwing notFound() here would render
+ * "Workspace not found", which is false and sends people looking for a link
+ * they typed wrong. Short-circuiting at the component instead keeps the URL
+ * and blocks every `_staff` child -- settings included -- in one place.
+ */
+function RouteShell() {
+  const { org, suspended } = Route.useRouteContext()
+  if (suspended) return <AppSuspended orgName={org.name} audience="staff" />
+  return <Outlet />
+}

@@ -14,10 +14,14 @@ import { Route as OrgSlugRouteImport } from './routes/$orgSlug'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as PickWorkspaceRouteImport } from './routes/pick-workspace'
+import { Route as PlatformRouteImport } from './routes/platform'
 import { Route as OrgSlugStaffRouteImport } from './routes/$orgSlug._staff'
 import { Route as PublicCallbackRouteImport } from './routes/_public.callback'
 import { Route as PublicCheckEmailRouteImport } from './routes/_public.check-email'
 import { Route as PublicLoginRouteImport } from './routes/_public.login'
+import { Route as PlatformIndexRouteImport } from './routes/platform.index'
+import { Route as PlatformAuditRouteImport } from './routes/platform.audit'
+import { Route as PlatformInvitationsRouteImport } from './routes/platform.invitations'
 import { Route as PortalOrgSlugRouteImport } from './routes/portal.$orgSlug'
 import { Route as OrgSlugStaffIndexRouteImport } from './routes/$orgSlug._staff.index'
 import { Route as OrgSlugStaffExportsRouteImport } from './routes/$orgSlug._staff.exports'
@@ -59,6 +63,11 @@ const PickWorkspaceRoute = PickWorkspaceRouteImport.update({
   path: '/pick-workspace',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlatformRoute = PlatformRouteImport.update({
+  id: '/platform',
+  path: '/platform',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrgSlugStaffRoute = OrgSlugStaffRouteImport.update({
   id: '/_staff',
   getParentRoute: () => OrgSlugRoute,
@@ -77,6 +86,21 @@ const PublicLoginRoute = PublicLoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => PublicRoute,
+} as any)
+const PlatformIndexRoute = PlatformIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PlatformRoute,
+} as any)
+const PlatformAuditRoute = PlatformAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => PlatformRoute,
+} as any)
+const PlatformInvitationsRoute = PlatformInvitationsRouteImport.update({
+  id: '/invitations',
+  path: '/invitations',
+  getParentRoute: () => PlatformRoute,
 } as any)
 const PortalOrgSlugRoute = PortalOrgSlugRouteImport.update({
   id: '/portal/$orgSlug',
@@ -169,10 +193,14 @@ export interface FileRoutesByFullPath {
   '/$orgSlug': typeof OrgSlugRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/pick-workspace': typeof PickWorkspaceRoute
+  '/platform': typeof PlatformRouteWithChildren
   '/callback': typeof PublicCallbackRoute
   '/check-email': typeof PublicCheckEmailRoute
   '/login': typeof PublicLoginRoute
+  '/platform/audit': typeof PlatformAuditRoute
+  '/platform/invitations': typeof PlatformInvitationsRoute
   '/portal/$orgSlug': typeof PortalOrgSlugRouteWithChildren
+  '/platform/': typeof PlatformIndexRoute
   '/$orgSlug/exports': typeof OrgSlugStaffExportsRoute
   '/$orgSlug/invoices': typeof OrgSlugStaffInvoicesRoute
   '/$orgSlug/settings': typeof OrgSlugStaffSettingsRoute
@@ -197,6 +225,9 @@ export interface FileRoutesByTo {
   '/callback': typeof PublicCallbackRoute
   '/check-email': typeof PublicCheckEmailRoute
   '/login': typeof PublicLoginRoute
+  '/platform/audit': typeof PlatformAuditRoute
+  '/platform/invitations': typeof PlatformInvitationsRoute
+  '/platform': typeof PlatformIndexRoute
   '/$orgSlug/exports': typeof OrgSlugStaffExportsRoute
   '/$orgSlug/invoices': typeof OrgSlugStaffInvoicesRoute
   '/$orgSlug/settings': typeof OrgSlugStaffSettingsRoute
@@ -219,11 +250,15 @@ export interface FileRoutesById {
   '/_public': typeof PublicRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/pick-workspace': typeof PickWorkspaceRoute
+  '/platform': typeof PlatformRouteWithChildren
   '/$orgSlug/_staff': typeof OrgSlugStaffRouteWithChildren
   '/_public/callback': typeof PublicCallbackRoute
   '/_public/check-email': typeof PublicCheckEmailRoute
   '/_public/login': typeof PublicLoginRoute
+  '/platform/audit': typeof PlatformAuditRoute
+  '/platform/invitations': typeof PlatformInvitationsRoute
   '/portal/$orgSlug': typeof PortalOrgSlugRouteWithChildren
+  '/platform/': typeof PlatformIndexRoute
   '/$orgSlug/_staff/exports': typeof OrgSlugStaffExportsRoute
   '/$orgSlug/_staff/invoices': typeof OrgSlugStaffInvoicesRoute
   '/$orgSlug/_staff/settings': typeof OrgSlugStaffSettingsRoute
@@ -247,10 +282,14 @@ export interface FileRouteTypes {
     | '/$orgSlug'
     | '/onboarding'
     | '/pick-workspace'
+    | '/platform'
     | '/callback'
     | '/check-email'
     | '/login'
+    | '/platform/audit'
+    | '/platform/invitations'
     | '/portal/$orgSlug'
+    | '/platform/'
     | '/$orgSlug/exports'
     | '/$orgSlug/invoices'
     | '/$orgSlug/settings'
@@ -275,6 +314,9 @@ export interface FileRouteTypes {
     | '/callback'
     | '/check-email'
     | '/login'
+    | '/platform/audit'
+    | '/platform/invitations'
+    | '/platform'
     | '/$orgSlug/exports'
     | '/$orgSlug/invoices'
     | '/$orgSlug/settings'
@@ -296,11 +338,15 @@ export interface FileRouteTypes {
     | '/_public'
     | '/onboarding'
     | '/pick-workspace'
+    | '/platform'
     | '/$orgSlug/_staff'
     | '/_public/callback'
     | '/_public/check-email'
     | '/_public/login'
+    | '/platform/audit'
+    | '/platform/invitations'
     | '/portal/$orgSlug'
+    | '/platform/'
     | '/$orgSlug/_staff/exports'
     | '/$orgSlug/_staff/invoices'
     | '/$orgSlug/_staff/settings'
@@ -324,6 +370,7 @@ export interface RootRouteChildren {
   PublicRoute: typeof PublicRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
   PickWorkspaceRoute: typeof PickWorkspaceRoute
+  PlatformRoute: typeof PlatformRouteWithChildren
   PortalOrgSlugRoute: typeof PortalOrgSlugRouteWithChildren
 }
 
@@ -364,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PickWorkspaceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/platform': {
+      id: '/platform'
+      path: '/platform'
+      fullPath: '/platform'
+      preLoaderRoute: typeof PlatformRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$orgSlug/_staff': {
       id: '/$orgSlug/_staff'
       path: ''
@@ -391,6 +445,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/login'
       preLoaderRoute: typeof PublicLoginRouteImport
       parentRoute: typeof PublicRoute
+    }
+    '/platform/': {
+      id: '/platform/'
+      path: '/'
+      fullPath: '/platform/'
+      preLoaderRoute: typeof PlatformIndexRouteImport
+      parentRoute: typeof PlatformRoute
+    }
+    '/platform/audit': {
+      id: '/platform/audit'
+      path: '/audit'
+      fullPath: '/platform/audit'
+      preLoaderRoute: typeof PlatformAuditRouteImport
+      parentRoute: typeof PlatformRoute
+    }
+    '/platform/invitations': {
+      id: '/platform/invitations'
+      path: '/invitations'
+      fullPath: '/platform/invitations'
+      preLoaderRoute: typeof PlatformInvitationsRouteImport
+      parentRoute: typeof PlatformRoute
     }
     '/portal/$orgSlug': {
       id: '/portal/$orgSlug'
@@ -567,6 +642,22 @@ const PublicRouteChildren: PublicRouteChildren = {
 const PublicRouteWithChildren =
   PublicRoute._addFileChildren(PublicRouteChildren)
 
+interface PlatformRouteChildren {
+  PlatformAuditRoute: typeof PlatformAuditRoute
+  PlatformInvitationsRoute: typeof PlatformInvitationsRoute
+  PlatformIndexRoute: typeof PlatformIndexRoute
+}
+
+const PlatformRouteChildren: PlatformRouteChildren = {
+  PlatformAuditRoute: PlatformAuditRoute,
+  PlatformInvitationsRoute: PlatformInvitationsRoute,
+  PlatformIndexRoute: PlatformIndexRoute,
+}
+
+const PlatformRouteWithChildren = PlatformRoute._addFileChildren(
+  PlatformRouteChildren,
+)
+
 interface PortalOrgSlugRouteChildren {
   PortalOrgSlugRequestRoute: typeof PortalOrgSlugRequestRoute
   PortalOrgSlugIndexRoute: typeof PortalOrgSlugIndexRoute
@@ -589,6 +680,7 @@ const rootRouteChildren: RootRouteChildren = {
   PublicRoute: PublicRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
   PickWorkspaceRoute: PickWorkspaceRoute,
+  PlatformRoute: PlatformRouteWithChildren,
   PortalOrgSlugRoute: PortalOrgSlugRouteWithChildren,
 }
 export const routeTree = rootRouteImport

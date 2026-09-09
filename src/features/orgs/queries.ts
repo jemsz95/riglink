@@ -12,6 +12,12 @@ export interface OrgMembership {
   timezone: string
   currency: string
   role: StaffRole
+  /**
+   * The workspace has been suspended by a platform operator. Everything under
+   * it reads as empty -- the org row itself stays readable ONLY so the app can
+   * say so, instead of rendering "workspace not found", which is a lie.
+   */
+  suspended: boolean
 }
 
 export interface PortalMembership {
@@ -20,11 +26,20 @@ export interface PortalMembership {
   org_id: string
   org_slug: string
   org_name: string
+  org_suspended: boolean
 }
 
 export interface Memberships {
   orgs: Array<OrgMembership>
   portal_clients: Array<PortalMembership>
+  /**
+   * Platform operator. Deliberately NOT a JWT claim -- see
+   * 20260912215000_platform_admins.sql. Reading it from the table means
+   * revoking the role takes effect on the next request rather than being
+   * stale for up to `jwt_expiry`, which is the right direction for the
+   * highest-blast-radius power in the system.
+   */
+  is_platform_admin: boolean
 }
 
 /**
@@ -40,7 +55,11 @@ export const orgKeys = {
 async function fetchMemberships(): Promise<Memberships> {
   const { data, error } = await supabase.rpc('my_memberships')
   if (error) throw error
-  return (data ?? { orgs: [], portal_clients: [] }) as unknown as Memberships
+  return (data ?? {
+    orgs: [],
+    portal_clients: [],
+    is_platform_admin: false,
+  }) as unknown as Memberships
 }
 
 export const membershipsQuery = () =>
