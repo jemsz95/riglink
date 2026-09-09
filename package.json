@@ -28,9 +28,12 @@
     "config:diff": "supabase config diff --project-ref nhrtxcdmnjvewvctfwao",
     "config:push": "supabase config push --project-ref nhrtxcdmnjvewvctfwao",
     "db:migrations": "supabase migration list --project-ref nhrtxcdmnjvewvctfwao",
+    "check:migrations": "supabase migration list --project-ref nhrtxcdmnjvewvctfwao 2>/dev/null | grep '^{' > /tmp/riglink-migrations.json && node scripts/check-migrations-in-sync.mjs /tmp/riglink-migrations.json",
     "deploy": "supabase db push --project-ref nhrtxcdmnjvewvctfwao && supabase config push --project-ref nhrtxcdmnjvewvctfwao",
     "check:advisors": "node scripts/check-advisors.mjs",
-    "check:portal-exposure": "node scripts/check-portal-exposure.mjs"
+    "check:portal-exposure": "node scripts/check-portal-exposure.mjs",
+    "deploy:web": "firebase deploy --only hosting --non-interactive",
+    "check:sql": "node scripts/check-sql-conventions.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
@@ -79,6 +82,7 @@
     "@vitest/browser": "4.1.11",
     "@vitest/browser-playwright": "4.1.11",
     "eslint": "^9.20.0",
+    "firebase-tools": "^15.32.1",
     "jsdom": "^30.0.1",
     "prettier": "^3.8.1",
     "storybook": "^10.6.0",

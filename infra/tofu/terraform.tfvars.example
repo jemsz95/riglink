@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars and fill in. That file is gitignored.
+#
+# No credentials here: both providers use Application Default Credentials
+# (`gcloud auth application-default login`).
+
+project_id        = "your-project-id"
+dns_zone_name     = "your-cloud-dns-zone"
+app_hostname      = "app.example.com"
+github_repository = "owner/repo"

@@ -72,6 +72,14 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      # Catches citext comparisons that silently become case-sensitive under
+      # `search_path = ''`. Nothing else catches this class: it produces no
+      # error, no failing test and no advisor finding, and checking it by hand
+      # in psql shows the correct answer.
+      - run: npm run check:sql
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
 
   migrations:
     name: Migrations match the deployed schema
@@ -93,3 +101,54 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       - run: node scripts/check-migrations-in-sync.mjs /tmp/migrations.json
+
+  infra:
+    name: OpenTofu config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.12.1
+      # `init -backend=false` and `validate` need no credentials, so this runs
+      # on forks too. A `plan` would need the API token and is left to a human
+      # -- infrastructure changes here are rare and worth looking at.
+      - run: tofu fmt -check -recursive
+        working-directory: infra/tofu
+      - run: tofu init -backend=false
+        working-directory: infra/tofu
+      - run: tofu validate
+        working-directory: infra/tofu
+
+  # Deploys the SPA to Firebase Hosting. Only from main, and only after the
+  # gate passes -- a red build must not become the live app.
+  #
+  # Needs no Supabase credentials at all: the bundle is static files, and its
+  # build inputs -- the project URL and publishable key -- are public and
+  # committed in .env.
+  #
+  # Keyless: the job trades its GitHub OIDC token for short-lived Google
+  # credentials via Workload Identity Federation (infra/tofu). The two
+  # variables are not secrets -- they name the pool and the service account,
+  # and only this repository's main branch is allowed to use them.
+  deploy:
+    name: Deploy web app
+    needs: [gate, advisors, migrations]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - run: npm run deploy:web

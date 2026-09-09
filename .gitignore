@@ -3,10 +3,8 @@ node_modules
 dist
 dist-ssr
 *.local
-.env
 .nitro
 .tanstack
-.wrangler
 .output
 .vinxi
 __unconfig*
@@ -20,3 +18,16 @@ playwright-report
 supabase/.env
 supabase/.branches
 supabase/.temp
+
+# OpenTofu / Terraform
+infra/tofu/.terraform/
+infra/tofu/*.tfstate
+infra/tofu/*.tfstate.*
+infra/tofu/*.tfvars
+!infra/tofu/*.tfvars.example
+infra/tofu/.terraform.tfstate.lock.info
+crash.log
+
+# Firebase CLI
+.firebase
+firebase-debug.log

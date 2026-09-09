@@ -51,10 +51,14 @@ Full detail, including verification steps: **`supabase/BOOTSTRAP.md`**.
 
 ```bash
 npm install
-cp .env.example .env.local     # then fill in the anon key from `npm run db:start`
-npm run dev                    # http://localhost:3000
+npm run dev                    # http://localhost:3000, against the production project
 npm run storybook              # http://localhost:6006 -- the design guide
 ```
+
+`.env` is committed with the production project's URL and publishable key,
+both public by design. To work against a local stack (`npm run db:start`),
+put its values in `.env.development.local`, which overrides `.env` for
+`npm run dev` only, so builds keep production values.
 
 ## Scripts
 
@@ -157,6 +161,57 @@ from an admin. No policy on `quotes`, `quote_line_items`, `catalog_items` or
 `app.orgs_with_role(['owner','admin','dispatcher'])`, and a tech consequently
 reads nothing from them while still seeing the job.
 
+**The platform tier can manage organisations and cannot read them.** The
+first user on an empty deployment becomes a platform operator
+(`public.platform_admins`): they onboard new contractors and can suspend an
+organisation. The guarantee that keeps that safe is an absence, stated the same
+way the techs-and-money one is: **no RLS policy in this schema mentions
+`app.is_platform_admin()`**, so an operator querying `jobs` or `clients`
+directly gets exactly what their own memberships permit — nothing, for an
+operator who is a member of none. Every platform power is a named
+`public.platform_*` RPC returning a hand-written projection, so the complete
+list of what they can see is one migration long. It is checkable:
+`select * from pg_policies where qual ~ 'is_platform_admin'` must be empty. No
+RPC writes `org_members`, and `platform_invite_founder()` takes no `org_id` at
+all — which is what makes "an operator cannot let themselves into a tenant"
+structural rather than a rule. Adding one is not a claim: it is read from the
+table on every call, so revoking it takes effect on the next request rather
+than being stale for up to `jwt_expiry`, and it costs no `claims_version` bump.
+
+**Suspension is enforced in the accessors, and the flag is not a column.** The
+obvious shape — `organizations.suspended_at` — does not work, because
+`organizations_admin_update` is a _row_ policy and RLS filters rows, not
+columns, so an owner could clear their own suspension. State lives only in
+`public.org_suspensions`, which has RLS on, zero policies and zero grants.
+`app.staff_orgs()`, `app.orgs_with_role()`, `app.portal_clients()` and
+`app.portal_orgs()` keep their signatures and subtract suspended orgs, so every
+table policy, the storage policies, Realtime and the overflow branch are
+covered without one policy being edited. Two paths do not route through an
+accessor and are fixed by name: `app.portal_contact_for()` (the guard for all
+five portal write RPCs) and `profiles_org_mates_select`. Sign-in still works —
+a user who belongs to two orgs must keep working in the healthy one — and the
+`organizations` row stays readable to its own members so the app can say
+"suspended" instead of "not found". The reason is operator-facing and never
+reaches the tenant. Baking it into the claims was rejected: it misses the
+overflow branch and `portal_contact_for` entirely, needs an unbounded epoch
+fan-out on both suspend and restore, and would cost a second claim.
+
+**An organisation has exactly one owner, at every commit boundary.** `<= 1` is
+`org_members_one_owner_per_org`, a partial unique index; `>= 1` is a
+`DEFERRABLE INITIALLY DEFERRED` constraint trigger. Deferred is what makes
+`delete from organizations` still possible and what removes the need for a
+transaction-local flag — the RPC's demote-then-promote simply passes at commit.
+An owner therefore cannot be demoted or deleted by anyone including themselves;
+`public.transfer_ownership()` is the only exit, and it makes the outgoing owner
+an `admin`. It is `SECURITY DEFINER` out of necessity, not convenience: as
+invoker, the demote fires `org_members_bump_epoch`, and the promote's accessor
+then reads the caller's own uncommitted bump and raises `P0001` against them —
+so it would fail on its second statement every time. That trap applies to any
+invoker RPC that writes `org_members` or `client_contacts` and then reads
+anything RLS-protected. The statement order is load-bearing too: a unique
+_index_ is never deferrable, so two owners must not exist even between two
+statements of one transaction.
+
 **Grants are explicit, and `anon` has none.** `auto_expose_new_tables = false`
 in `config.toml` states the intent but does not implement it: a Supabase
 project carries `alter default privileges in schema public grant all on tables
@@ -239,6 +294,17 @@ rather than a defect caught by a second mechanism. It also raises
 `0010_security_definer_view`, which splinter's source emits at **ERROR** (the
 docs page saying WARN is stale) and which has no suppression mechanism of any
 kind.
+
+**The check must match the accessor family, not one name.** For four phases
+`check-portal-exposure` derived its table list by grepping `pg_policies.qual`
+for the literal `portal_clients()` — and `organizations` was invisible to it the
+whole time, because its portal policy uses `app.portal_orgs()`. The row access
+was correct; nothing was enumerating the thirteen columns that came with it.
+The predicate now matches `app.portal_*`, and three of those columns
+(`default_tax_rate`, `invoice_prefix`, `invoice_terms_days`) are inventoried
+with a `REVIEW:` marker rather than a rubber stamp: they are the contractor's
+own defaults, shown nowhere in the portal, and belong in a side table or behind
+a `portal_org_v` projection.
 
 **The standard is enforced, not just documented.** `npm run
 check:portal-exposure` enumerates every column a portal contact can read —
@@ -389,9 +455,144 @@ requires. `FieldShell` now sets `data-density="comfortable"`, which was
 defined in the stylesheet from Phase 1 and never actually opted into: the
 48px targets it describes were dead CSS until this phase.
 
+**Sign-up is invite-only, and there were two doors.** `enable_signup` stays
+`true` — turning it off would block invited people too, since they create
+their own account from the magic link. Instead the `before_user_created` auth
+hook rejects an address with no pending `org_invitations` or `client_contacts`
+row, so the database, which already knows who was invited, is what decides. It
+fires for OAuth as well as email, so enabling Google later does not open a
+side entrance, and it fires only on user _creation_, so it cannot lock out
+anyone who already has an account.
+
+The second door was `create_organization()`, which was granted to
+`authenticated` with no further check. Closing only sign-up would have left an
+invited _client contact_ — someone invited to view their own jobs — able to
+sign in and spin up a contractor workspace. It now requires a platform
+invitation (`org_invitations` with `org_id is null`), which is consumed on use.
+
+On an empty project both gates open: the hook allows the first sign-up and
+`create_organization` allows the first org, because there is nobody to issue
+an invitation yet.
+
+**One invitations table, two kinds.** `org_id is not null` means "join this
+org as `role`"; `org_id is null` means "create your own org". Both expire,
+both are consumed once, both are read by the same gate — splitting them would
+duplicate the lifecycle and the policies for one nullable column. There is no
+`DELETE` grant: an invitation is revoked, not erased, because "who invited
+this person" is the question you ask after something goes wrong. Revoking also
+closes the sign-up door it opened.
+
+**`citext` comparisons need `operator(extensions.=)`.** Every function pins
+`set search_path = ''`, which is right — but operators resolve by name through
+the search_path, and `citext`'s `=` lives in `extensions`. With an empty
+search_path it is invisible and PostgreSQL _silently_ falls back to the
+implicit cast to text and `text = text`, which is case-sensitive. Same syntax,
+opposite semantics, no warning:
+
+    search_path = '' :  'A@B.com'::citext = 'a@b.com'::citext  ->  FALSE
+    normal session   :  'A@B.com'::citext = 'a@b.com'::citext  ->  TRUE
+
+The second line is what you get checking it by hand, which is why this
+survived three phases inside `bootstrap_session`: a client contact invited as
+`Sam@Firm.com` who signed up as `sam@firm.com` never had their invitation
+claimed, with no error anywhere. `npm run check:sql` now fails the build on a
+bare `=` between citext columns in an empty-search_path function.
+
 **Money is integer cents everywhere** — database, UI, CSV export. Never a
 float. One shared `computeTotals` serves quotes, invoices and the accounting
 export so the three cannot disagree.
+
+## Hosting
+
+The SPA is served by **Firebase Hosting** from the `riglink-508420` Google
+Cloud project, at `my.riglink.app`. It is static files only — there is no
+server code of ours in the request path.
+
+    npm run build
+    npm run deploy:web             # firebase deploy --only hosting
+
+CI deploys on every push to `main` once the gate passes, authenticating with
+Workload Identity Federation — there is no service account key anywhere.
+
+### Why not a Supabase Storage bucket
+
+That was the original plan, and it does not work. Two properties of Storage,
+both measured against the live project:
+
+1. **Storage will not serve HTML as HTML.** An object uploaded with
+   `content-type: text/html; charset=utf-8` — confirmed stored correctly in
+   `storage.objects.metadata` — comes back as `text/plain`. The same bytes
+   uploaded as `.html`, `.txt` and `.bin`, all with an explicit `text/html`,
+   all served as `text/plain`: it is the content type that is refused, not the
+   extension. That is deliberate on Supabase's part — serving arbitrary
+   uploaded HTML from a shared `*.supabase.co` origin would be a cross-tenant
+   XSS vector. A browser shows the app's source.
+2. **There is no SPA fallback.** A missing object returns a JSON body, so
+   `/acme/jobs/4f2a` — a deep link, or just pressing refresh — returns
+   `{"error":"not_found"}`.
+
+Storage keeps the jobs it is good at: `evidence`, `branding`, `exports`.
+
+### Why Firebase and not Cloudflare
+
+Cloudflare Workers Static Assets was set up first and works, but a Workers
+custom domain requires the whole `riglink.app` zone on Cloudflare DNS, and
+the domain lives in Cloud DNS alongside the rest of the Google Cloud setup.
+Firebase attaches a subdomain with two records in the existing zone. At this
+app's traffic, Cloudflare's free bandwidth is not worth a second cloud.
+
+### firebase.json
+
+`firebase.json` is the whole security posture of the site: routing, the CSP,
+and the cache policy. JSON has no comments, so the reason for each value lives
+in `infra/firebase/hosting.test.ts`, which asserts it. The CSP names the
+Supabase origin, and `vite build` fails if it does not match the
+`VITE_SUPABASE_URL` being built with, rather than ship a CSP that blocks the
+app's own API.
+
+Three Firebase behaviours shape it. None is in Firebase's docs; each was
+measured against a deployed preview channel:
+
+- **Header rules match the requested path, not the rewrite target.** A deep
+  link is served `index.html` but never matches a `/index.html` rule, so the
+  shell's `no-cache` lives on the catch-all `**` rule.
+- **The later rule wins** when two set the same header. The `/assets/**`
+  immutable rule must come after the catch-all; reversed, every asset ends up
+  `no-cache` and the content-hashed filenames buy nothing.
+- **`!/assets/**` works as a rewrite source.** Everything except assets falls
+  back to the shell; a missing chunk gets a real 404 rather than `index.html`
+  served as JavaScript.
+
+**A deploy needs no cache purge:** Firebase invalidates its CDN on release,
+asset filenames are content-hashed, and the shell is `no-cache`.
+
+### Infrastructure as code
+
+The durable resources — the custom domain, its Cloud DNS records, and the
+identity CI deploys with — are OpenTofu, in `infra/tofu/`. The site content
+deliberately is **not**: it is a build artifact that changes every commit.
+
+    firebase   deploys the app on every commit   (build artifact)
+    opentofu   points a hostname at it, once     (infrastructure)
+
+The DNS zone itself is referenced, not managed: it also carries the domain's
+mail records. `infra/tofu/README.md` has the first-run steps.
+
+Supabase is deliberately not managed by OpenTofu. Its schema is migrations in
+this repo with a sync check, and its settings are `config.toml` with a drift
+check; adding Terraform would make a third source of truth for things two
+mechanisms already own.
+
+### Still to do before the first real deploy
+
+1. `tofu apply` in `infra/tofu/` (see its README), then set the two GitHub
+   Actions variables it prints.
+2. Once `tofu output host_state` is `HOST_ACTIVE`, set `site_url` in
+   `config.toml` to `https://my.riglink.app` and `npm run config:push`. Until
+   then magic links redirect to `localhost:3000`, and the failure presents as
+   "magic links are broken" rather than "the config still points at a laptop".
+3. Delete the retired `app` bucket (see BOOTSTRAP.md) — it is already private
+   and serving nothing, but the objects are still there.
 
 ## Pinned versions, and why
 

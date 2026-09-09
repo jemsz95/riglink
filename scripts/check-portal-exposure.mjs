@@ -45,10 +45,19 @@ if (!projectRef || !token) {
 }
 
 /**
- * A table is portal-readable when some SELECT or ALL policy on it consults
- * `app.portal_clients()`. Derived from the catalogue rather than hardcoded, so
- * adding a portal policy to a new table brings that table under the check
- * automatically -- which is the case most likely to be forgotten.
+ * A table is portal-readable when some SELECT or ALL policy on it consults one
+ * of the `app.portal_*` accessors. Derived from the catalogue rather than
+ * hardcoded, so adding a portal policy to a new table brings that table under
+ * the check automatically -- which is the case most likely to be forgotten.
+ *
+ * MATCH THE FAMILY, NOT ONE NAME. This test was `like '%portal_clients()%'`
+ * for four phases, and `organizations` was invisible to it the whole time:
+ * `organizations_portal_select` uses `app.portal_orgs()`, because a contact
+ * needs the contractor's name and branding to render the portal shell. The row
+ * access is correct; nothing was enumerating the COLUMNS that come with it.
+ *
+ * A second literal would have fixed that one table and left the next accessor
+ * to repeat it, so the predicate matches the shape of the name instead.
  */
 const QUERY = `
   with portal_tables as (
@@ -56,7 +65,7 @@ const QUERY = `
     from pg_policies
     where schemaname = 'public'
       and cmd in ('SELECT', 'ALL')
-      and coalesce(qual, '') like '%portal_clients()%'
+      and coalesce(qual, '') ~ 'app\\.portal_[a-z_]+\\(\\)'
   )
   select c.table_name, c.column_name
   from information_schema.columns c

@@ -30,6 +30,9 @@ export default defineConfig({
             'src/**/*.test.{ts,tsx}',
             '.storybook/**/*.test.{ts,tsx}',
             'config/**/*.test.{ts,tsx}',
+            // The hosting config's headers and routing are pure and belong
+            // under test even though they ship outside the bundle.
+            'infra/**/*.test.{ts,tsx}',
           ],
           // `*.browser.test.ts` also matches `*.test.ts`. Without this the
           // browser specs run under jsdom, which has no colour conversion and
