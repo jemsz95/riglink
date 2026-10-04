@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { GripVertical, Plus, Trash2 } from 'lucide-react'
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import { Plus, Trash2 } from 'lucide-react'
 import { CatalogPicker } from './catalog-picker'
 import { DecimalInput, MoneyInput } from './money-input'
 import { QuoteTotalsBar } from './quote-totals'
@@ -92,10 +99,23 @@ export function LineItemEditor({
 
   const lastSavedRef = useRef<string>(JSON.stringify(initial))
   const [dirty, setDirty] = useState(false)
+  // Bumped on every edit so the debounce below restarts each time. `dirty`
+  // alone cannot drive it: once true, setting it true again is not a state
+  // change, so the effect would only ever run for the first edit.
+  const [revision, setRevision] = useState(0)
+  // The draft has unsaved edits but cannot be saved as it stands.
+  const [blocked, setBlocked] = useState(false)
 
   const scheduleSave = useCallback(() => {
     setDirty(true)
+    setRevision((current) => current + 1)
   }, [])
+
+  // `onAutosave` is rebuilt on most parent renders; reading it through an
+  // effect event keeps those renders from restarting the debounce.
+  const autosave = useEffectEvent((values: QuoteDraftValues) => {
+    onAutosave(values)
+  })
 
   // One debounced save of the entire draft. Not per keystroke and not per
   // field: `save_quote_draft` applies the whole array in a single
@@ -111,28 +131,45 @@ export function LineItemEditor({
   useEffect(() => {
     if (!dirty || disabled) return
     const timer = setTimeout(() => {
-      const values = form.state.values
+      // Positions are derived from array order here rather than trusted from
+      // the lines. Lines are numbered `length + 1` when added and nothing
+      // renumbers them on removal, so removing a middle line and adding
+      // another would hand the server two lines at the same position and
+      // fail `unique (quote_id, position)` -- the whole save with it.
+      const values = {
+        ...form.state.values,
+        lines: form.state.values.lines.map((line, index) => ({
+          ...line,
+          position: index + 1,
+        })),
+      }
       const serialised = JSON.stringify(values)
       if (serialised === lastSavedRef.current) {
         setDirty(false)
+        setBlocked(false)
         return
       }
 
       // Never autosave a draft that cannot be totalled -- it would persist a
       // quantity the numeric column rejects and surface as an opaque error.
+      // Stays dirty, so the next edit that fixes it is saved.
       const allValid = values.lines.every(
         (line) =>
           isQuantityInput(line.quantity) && line.description.trim() !== '',
       )
-      if (!allValid) return
+      if (!allValid) {
+        setBlocked(true)
+        return
+      }
 
       lastSavedRef.current = serialised
       setDirty(false)
-      onAutosave(values)
+      setBlocked(false)
+      autosave(values)
     }, AUTOSAVE_MS)
 
     return () => clearTimeout(timer)
-  }, [dirty, disabled, form, onAutosave])
+  }, [revision, dirty, disabled, form])
 
   const catalogByKind = useMemo(
     () => catalog.filter((item) => item.active),
@@ -146,15 +183,13 @@ export function LineItemEditor({
           <div className="flex flex-col gap-3">
             {/* Desktop: a real grid with aligned columns. */}
             <div className="border-border hidden overflow-hidden rounded-lg border md:block">
-              <div className="bg-muted/50 text-muted-foreground grid grid-cols-[2rem_1fr_7rem_6rem_8rem_6rem_7rem_2.5rem] items-center gap-2 px-2 py-2 text-2xs font-medium tracking-wide uppercase">
-                <span className="sr-only">Reorder</span>
-                <span />
+              <div className="bg-muted/50 text-muted-foreground grid grid-cols-[1fr_7rem_6rem_8rem_6rem_7rem_2.5rem] items-center gap-2 px-2 py-2 text-2xs font-medium tracking-wide uppercase">
                 <span>Description</span>
                 <span>Type</span>
                 <span className="text-right">Qty</span>
                 <span>Unit</span>
                 <span className="text-right">Unit price</span>
-                <span className="text-right">Tax</span>
+                <span className="text-right">Total</span>
                 <span className="sr-only">Remove</span>
               </div>
 
@@ -233,7 +268,11 @@ export function LineItemEditor({
                 }}
               />
 
-              <SaveIndicator state={saveState} dirty={dirty} />
+              <SaveIndicator
+                state={saveState}
+                dirty={dirty}
+                blocked={blocked}
+              />
             </div>
           </div>
         )}
@@ -343,20 +382,24 @@ export function LineItemEditor({
 function SaveIndicator({
   state,
   dirty,
+  blocked,
 }: {
   state: 'idle' | 'saving' | 'saved' | 'error'
   dirty: boolean
+  blocked: boolean
 }) {
   // Tells the truth about unsaved work rather than implying everything is
   // safe. "Saved" only appears when the last save actually succeeded.
   const label =
     state === 'error'
       ? 'Could not save — retrying on the next change'
-      : dirty || state === 'saving'
-        ? 'Saving…'
-        : state === 'saved'
-          ? 'Saved'
-          : ''
+      : blocked
+        ? 'Not saved — every line needs a description and a quantity'
+        : dirty || state === 'saving'
+          ? 'Saving…'
+          : state === 'saved'
+            ? 'Saved'
+            : ''
 
   if (!label) return null
 
@@ -364,7 +407,9 @@ function SaveIndicator({
     <span
       className={cn(
         'ml-auto text-xs',
-        state === 'error' ? 'text-destructive' : 'text-muted-foreground',
+        state === 'error' || blocked
+          ? 'text-destructive'
+          : 'text-muted-foreground',
       )}
       role="status"
       aria-live="polite"
@@ -399,9 +444,7 @@ const EditorRow = withForm({
   defaultValues: ROW_SHAPE,
   props: ROW_PROPS,
   render: ({ form, index, currency, disabled, onChanged, onRemove }) => (
-    <div className="border-border grid grid-cols-[2rem_1fr_7rem_6rem_8rem_6rem_7rem_2.5rem] items-center gap-2 border-t px-2 py-1.5">
-      <GripVertical className="text-muted-foreground/40 size-4" aria-hidden />
-
+    <div className="border-border grid grid-cols-[1fr_7rem_6rem_8rem_6rem_7rem_2.5rem] items-center gap-2 border-t px-2 py-1.5">
       <form.Field name={`lines[${index}].description`}>
         {(field) => (
           <Input
