@@ -207,3 +207,32 @@ export function useSupersedeQuote(orgId: string) {
     },
   })
 }
+
+/**
+ * Throws a draft away. If it was a revision, the quote it replaced goes back
+ * to `sent` (or `expired`) in the same transaction -- `supersede_quote`
+ * marked it superseded when the draft was created, and a plain DELETE would
+ * leave the job with no live quote and no way to revise it again.
+ *
+ * Owners and admins only, by `quotes_admin_delete_draft`; the RPC raises
+ * 42501 for anyone else rather than quietly deleting nothing.
+ */
+export function useDiscardQuoteDraft(orgId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: { quoteId: string; jobId: string }) =>
+      withStaleClaimsRetry(async (): Promise<void> => {
+        const { error } = await supabase.rpc('discard_quote_draft', {
+          p_quote_id: input.quoteId,
+        })
+        if (error) throw error
+      }),
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({
+        queryKey: quoteKeys.forJob(orgId, input.jobId),
+      })
+      void queryClient.invalidateQueries({ queryKey: quoteKeys.all(orgId) })
+    },
+  })
+}

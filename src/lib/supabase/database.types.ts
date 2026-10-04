@@ -1600,6 +1600,8 @@ export type Database = {
           sent_at: string | null
           status: Database["public"]["Enums"]["quote_status"]
           subtotal_cents: number
+          supersedes_id: string | null
+          supersedes_status: Database["public"]["Enums"]["quote_status"] | null
           tax_cents: number
           terms: string | null
           total_cents: number
@@ -1621,6 +1623,8 @@ export type Database = {
           sent_at?: string | null
           status?: Database["public"]["Enums"]["quote_status"]
           subtotal_cents?: number
+          supersedes_id?: string | null
+          supersedes_status?: Database["public"]["Enums"]["quote_status"] | null
           tax_cents?: number
           terms?: string | null
           total_cents?: number
@@ -1642,6 +1646,8 @@ export type Database = {
           sent_at?: string | null
           status?: Database["public"]["Enums"]["quote_status"]
           subtotal_cents?: number
+          supersedes_id?: string | null
+          supersedes_status?: Database["public"]["Enums"]["quote_status"] | null
           tax_cents?: number
           terms?: string | null
           total_cents?: number
@@ -1711,6 +1717,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_supersedes_fk"
+            columns: ["supersedes_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "portal_quote_v"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "quotes_supersedes_fk"
+            columns: ["supersedes_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "quotes_supersedes_fk"
+            columns: ["supersedes_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "staff_quote_v"
+            referencedColumns: ["id", "org_id"]
           },
         ]
       }
@@ -3014,6 +3041,7 @@ export type Database = {
         Args: { p_note?: string; p_quote_id: string }
         Returns: Json
       }
+      discard_quote_draft: { Args: { p_quote_id: string }; Returns: undefined }
       my_memberships: { Args: never; Returns: Json }
       platform_invite_founder: {
         Args: { p_email: string; p_note?: string }
@@ -3099,6 +3127,8 @@ export type Database = {
           sent_at: string | null
           status: Database["public"]["Enums"]["quote_status"]
           subtotal_cents: number
+          supersedes_id: string | null
+          supersedes_status: Database["public"]["Enums"]["quote_status"] | null
           tax_cents: number
           terms: string | null
           total_cents: number
@@ -3161,6 +3191,8 @@ export type Database = {
           sent_at: string | null
           status: Database["public"]["Enums"]["quote_status"]
           subtotal_cents: number
+          supersedes_id: string | null
+          supersedes_status: Database["public"]["Enums"]["quote_status"] | null
           tax_cents: number
           terms: string | null
           total_cents: number
@@ -3232,6 +3264,8 @@ export type Database = {
           sent_at: string | null
           status: Database["public"]["Enums"]["quote_status"]
           subtotal_cents: number
+          supersedes_id: string | null
+          supersedes_status: Database["public"]["Enums"]["quote_status"] | null
           tax_cents: number
           terms: string | null
           total_cents: number
