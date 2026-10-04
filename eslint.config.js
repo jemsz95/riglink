@@ -1,0 +1,41 @@
+//  @ts-check
+
+import { tanstackConfig } from '@tanstack/eslint-config'
+
+export default [
+  ...tanstackConfig,
+  {
+    rules: {
+      'import/no-cycle': 'off',
+      'import/order': 'off',
+      'sort-imports': 'off',
+      '@typescript-eslint/array-type': 'off',
+      '@typescript-eslint/require-await': 'off',
+      'pnpm/json-enforce-catalog': 'off',
+    },
+  },
+  {
+    // Vendored from the shadcn registry. These files are regenerated verbatim by
+    // `shadcn add`, so hand-fixing stylistic findings is endless churn -- the
+    // next update reverts them. Correctness rules stay on; only the rules that
+    // conflict with the registry's defensive coding style are relaxed.
+    files: ['src/components/ui/**/*.tsx'],
+    rules: {
+      '@typescript-eslint/no-unnecessary-condition': 'off',
+      'no-shadow': 'off',
+    },
+  },
+  {
+    ignores: [
+      'eslint.config.js',
+      'prettier.config.js',
+      'dist/**',
+      'storybook-static/**',
+      'coverage/**',
+      'test-results/**',
+      'playwright-report/**',
+      'src/routeTree.gen.ts',
+      'scripts/**',
+    ],
+  },
+]

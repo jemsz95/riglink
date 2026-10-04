@@ -1,0 +1,334 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/* Tailwind v4 defaults dark mode to prefers-color-scheme. We need a class toggle so
+   users can override the OS and so Storybook can force a theme per story. */
+@custom-variant dark (&:is(.dark *));
+
+/* ==========================================================================
+   1. RAW SEMANTIC VALUES  (themeable, per-tenant overridable)
+
+   These are plain custom properties, NOT theme values. They are what `.dark`
+   and per-tenant branding swap. Never reference these directly in markup --
+   go through the Tailwind utilities generated in block 2.
+   ========================================================================== */
+
+:root {
+  --radius: 0.75rem;
+
+  /* Warm neutrals -- hue ~80, very low chroma. Warm, not clinical. */
+  --background: oklch(0.994 0.003 85);
+  --foreground: oklch(0.2 0.012 70);
+
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+
+  --muted: oklch(0.965 0.008 80);
+  --muted-foreground: oklch(0.5 0.015 75);
+
+  --border: oklch(0.905 0.01 80);
+  --input: oklch(0.905 0.01 80);
+
+  /* Teal-green primary: calm, approachable, distinct from every status colour. */
+  --primary: oklch(0.55 0.1 175);
+  --primary-foreground: oklch(0.99 0.003 85);
+
+  --secondary: oklch(0.955 0.01 80);
+  --secondary-foreground: oklch(0.24 0.014 70);
+
+  /* Warm amber. ATTENTION ONLY -- quotes awaiting approval, blocked jobs, a
+     non-empty offline queue. If it shows up as decoration it stops meaning
+     anything, and the one place it matters gets missed. */
+  --accent: oklch(0.78 0.14 70);
+  --accent-foreground: oklch(0.22 0.03 70);
+
+  --destructive: oklch(0.58 0.19 27);
+  --destructive-foreground: oklch(0.99 0.003 85);
+
+  --ring: var(--primary);
+
+  /* --- Feedback: transient outcomes of an action --- */
+  --success: oklch(0.6 0.13 155);
+  --success-foreground: oklch(0.99 0.003 85);
+  --warning: oklch(0.78 0.14 70);
+  --warning-foreground: oklch(0.22 0.03 70);
+  --info: oklch(0.58 0.1 210);
+  --info-foreground: oklch(0.99 0.003 85);
+
+  /* --- Job lifecycle: a DELIBERATELY SEPARATE scale ---
+     Not folded into feedback colours. Overloading them makes "work complete"
+     and "operation succeeded" indistinguishable and collapses the vocabulary
+     the UI can express. Ordered roughly along the lifecycle. */
+  --status-draft: oklch(0.62 0.012 80);
+  --status-requested: oklch(0.62 0.12 265);
+  --status-triaged: oklch(0.6 0.11 250);
+  --status-quoted: oklch(0.63 0.13 300);
+  --status-approved: oklch(0.6 0.11 200);
+  --status-scheduled: oklch(0.62 0.11 220);
+  --status-progress: oklch(0.72 0.14 75);
+  --status-work-complete: oklch(0.64 0.12 165);
+  --status-client-accepted: oklch(0.6 0.13 155);
+  --status-invoiced: oklch(0.55 0.1 170);
+  --status-closed: oklch(0.55 0.012 80);
+  --status-on-hold: oklch(0.66 0.1 55);
+  --status-cancelled: oklch(0.55 0.02 25);
+  --status-declined: oklch(0.58 0.15 25);
+
+  /* --- Charts: categorical, ordered for maximum adjacent separation --- */
+  --chart-1: oklch(0.55 0.1 175);
+  --chart-2: oklch(0.62 0.13 265);
+  --chart-3: oklch(0.75 0.14 70);
+  --chart-4: oklch(0.63 0.13 300);
+  --chart-5: oklch(0.6 0.13 155);
+
+  /* --- Sidebar (shadcn convention) --- */
+  --sidebar: oklch(0.978 0.006 82);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.945 0.012 80);
+  --sidebar-accent-foreground: oklch(0.24 0.014 70);
+  --sidebar-border: oklch(0.9 0.01 80);
+  --sidebar-ring: var(--ring);
+
+  /* --- Elevation: restrained. Heavy shadows vanish in sunlight, so borders
+         carry most of the separation and shadow is a hint, not the mechanism. */
+  --elevation-1: 0 1px 2px 0 oklch(0.2 0.012 70 / 0.06);
+  --elevation-2:
+    0 2px 6px -1px oklch(0.2 0.012 70 / 0.1),
+    0 1px 2px oklch(0.2 0.012 70 / 0.06);
+  --elevation-3: 0 8px 24px -6px oklch(0.2 0.012 70 / 0.16);
+
+  /* --- Density axis. Not a theme fork: one component tree, two ergonomics. --- */
+  --size-touch: 2.75rem; /* 44px -- WCAG 2.5.5 target size */
+  --row-height: 2.25rem; /* compact: office tables */
+}
+
+.dark {
+  --background: oklch(0.17 0.008 75);
+  --foreground: oklch(0.97 0.004 85);
+
+  --card: oklch(0.21 0.009 75);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.235 0.009 75);
+  --popover-foreground: var(--foreground);
+
+  --muted: oklch(0.27 0.009 75);
+  --muted-foreground: oklch(0.71 0.012 78);
+
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+
+  --primary: oklch(0.72 0.11 175);
+  --primary-foreground: oklch(0.18 0.02 175);
+
+  --secondary: oklch(0.28 0.009 75);
+  --secondary-foreground: oklch(0.97 0.004 85);
+
+  --accent: oklch(0.8 0.14 72);
+  --accent-foreground: oklch(0.2 0.03 70);
+
+  --destructive: oklch(0.66 0.18 25);
+  --destructive-foreground: oklch(0.99 0.003 85);
+
+  --ring: var(--primary);
+
+  --success: oklch(0.7 0.13 155);
+  --success-foreground: oklch(0.18 0.02 155);
+  --warning: oklch(0.8 0.14 72);
+  --warning-foreground: oklch(0.2 0.03 70);
+  --info: oklch(0.7 0.11 210);
+  --info-foreground: oklch(0.18 0.02 210);
+
+  /* Lifecycle colours lift in L* for dark surfaces while holding hue, so the
+     status vocabulary stays learnable across themes. */
+  --status-draft: oklch(0.7 0.012 80);
+  --status-requested: oklch(0.72 0.12 265);
+  --status-triaged: oklch(0.7 0.11 250);
+  --status-quoted: oklch(0.74 0.13 300);
+  --status-approved: oklch(0.72 0.11 200);
+  --status-scheduled: oklch(0.73 0.11 220);
+  --status-progress: oklch(0.8 0.14 75);
+  --status-work-complete: oklch(0.74 0.12 165);
+  --status-client-accepted: oklch(0.72 0.13 155);
+  --status-invoiced: oklch(0.68 0.1 170);
+  --status-closed: oklch(0.64 0.012 80);
+  --status-on-hold: oklch(0.76 0.1 55);
+  --status-cancelled: oklch(0.64 0.02 25);
+  --status-declined: oklch(0.68 0.15 25);
+
+  --chart-1: oklch(0.72 0.11 175);
+  --chart-2: oklch(0.72 0.12 265);
+  --chart-3: oklch(0.82 0.14 70);
+  --chart-4: oklch(0.74 0.13 300);
+  --chart-5: oklch(0.72 0.13 155);
+
+  --sidebar: oklch(0.2 0.009 75);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.28 0.009 75);
+  --sidebar-accent-foreground: oklch(0.97 0.004 85);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: var(--ring);
+
+  --elevation-1: 0 1px 2px 0 oklch(0 0 0 / 0.4);
+  --elevation-2: 0 2px 6px -1px oklch(0 0 0 / 0.5);
+  --elevation-3: 0 8px 24px -6px oklch(0 0 0 / 0.6);
+}
+
+/* The field shell opts into larger everything. Set on a wrapper, not the html
+   element, so a staff table and a field card can coexist on a tablet. */
+[data-density='comfortable'] {
+  --size-touch: 3rem; /* 48px -- glove-friendly */
+  --row-height: 3rem;
+}
+
+/* ==========================================================================
+   2. BRIDGE: raw values -> Tailwind utilities
+
+   `inline` is LOAD-BEARING. It makes Tailwind emit the utility referencing the
+   var() by reference, so `.dark` overrides in block 1 actually change
+   `bg-background`. Without `inline`, Tailwind resolves the value at build time
+   and dark mode silently does nothing. This is the single easiest way to break
+   theming in v4 -- see .storybook/docs/02-color.mdx.
+   ========================================================================== */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-ring: var(--ring);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  --color-status-draft: var(--status-draft);
+  --color-status-requested: var(--status-requested);
+  --color-status-triaged: var(--status-triaged);
+  --color-status-quoted: var(--status-quoted);
+  --color-status-approved: var(--status-approved);
+  --color-status-scheduled: var(--status-scheduled);
+  --color-status-progress: var(--status-progress);
+  --color-status-work-complete: var(--status-work-complete);
+  --color-status-client-accepted: var(--status-client-accepted);
+  --color-status-invoiced: var(--status-invoiced);
+  --color-status-closed: var(--status-closed);
+  --color-status-on-hold: var(--status-on-hold);
+  --color-status-cancelled: var(--status-cancelled);
+  --color-status-declined: var(--status-declined);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --shadow-e1: var(--elevation-1);
+  --shadow-e2: var(--elevation-2);
+  --shadow-e3: var(--elevation-3);
+
+  /* Density-aware sizing: `min-h-touch`, `h-row` follow the active density. */
+  --spacing-touch: var(--size-touch);
+  --spacing-row: var(--row-height);
+}
+
+/* ==========================================================================
+   3. STATIC SCALES  (identical in every theme, so NOT inline)
+   ========================================================================== */
+
+@theme {
+  --font-sans:
+    'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system,
+    sans-serif;
+  --font-mono:
+    'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* One step below Tailwind's xs, for dense table metadata only. */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+}
+
+/* ==========================================================================
+   4. BASE LAYER
+   ========================================================================== */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #app {
+    min-height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    margin: 0;
+  }
+
+  /* 16px minimum in the field shell: also stops iOS zooming on focus. */
+  [data-density='comfortable'] {
+    font-size: 1rem;
+  }
+
+  /* Money, quantities and IDs must not reflow as digits change. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

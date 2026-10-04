@@ -1,0 +1,41 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+
+<Meta title="Design Tokens/Brand" />
+
+# Brand direction
+
+**Warm and approachable.** Field service software is often cold, dense and
+faintly punitive. riglink should feel like a well-organised workshop: warm,
+legible, calm, competent. Nothing decorative that costs contrast.
+
+## The three decisions
+
+**Warm neutrals, not cool grey.** Every neutral sits around hue 80 with very
+low chroma. It reads as paper and workbench rather than server rack, and it
+makes the status colours (which are all chromatic) unambiguous against it.
+
+**Teal-green as primary.** Calm and trustworthy without being corporate blue,
+and far enough from every status hue that a primary button is never mistaken
+for a state. It is the colour of _actions_.
+
+**Amber for attention only.** Warm amber is the loudest thing in the palette,
+so it is rationed: quotes awaiting approval, blocked jobs, a non-empty offline
+upload queue. If amber becomes decoration it stops meaning anything, and the
+one screen where it matters gets ignored.
+
+## Constraints that outrank aesthetics
+
+1. **Sunlight legibility.** A technician reads this on a scratched phone
+   outdoors. Contrast targets are functional requirements, not polish — see the
+   ratios on the Colour page.
+2. **Gloved hands.** 44px minimum touch targets, 48px in the field shell.
+3. **Colour is never the only signal.** Every status carries an icon and a
+   text label. Roughly 1 in 12 men has a colour vision deficiency, and this is
+   a trades product.
+4. **Numbers must not jitter.** Money, quantities and IDs use tabular figures
+   so columns stay still as values change.
+
+## Radius and shape
+
+`--radius: 0.75rem`, noticeably rounded. It is the main carrier of
+"approachable" and the cheapest one — it costs no contrast.

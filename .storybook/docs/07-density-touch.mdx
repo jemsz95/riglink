@@ -1,0 +1,46 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+
+<Meta title="Patterns/Density & touch" />
+
+# Density and touch
+
+Density is an **ergonomics axis, not a theme**. One component tree serves both;
+`data-density` on a wrapper changes `--size-touch` and `--row-height`, and the
+`touch`/`row` spacing utilities follow.
+
+```tsx
+// The field shell opts in. Everything inside inherits field ergonomics.
+<div data-density="comfortable">
+  <JobCard job={job} />
+</div>
+```
+
+Set it on a wrapper rather than `html`, so a tablet can show a dense staff
+table beside a comfortable field card.
+
+## Compact — the office
+
+Owners and dispatchers live in this all day on a desktop. Density is a feature:
+more jobs visible means fewer scrolls. 36px rows, `text-sm` body, hover states,
+keyboard shortcuts, multi-column layouts.
+
+## Comfortable — the field
+
+A technician, one hand, phone, possibly gloves, possibly bright sun, possibly
+two bars of signal.
+
+- **48px minimum touch targets.** Not 44 — gloves.
+- **`text-base` floor.** Also prevents iOS focus-zoom.
+- **Primary action in the bottom third.** Thumb-reachable one-handed.
+- **One task per screen.** No side-by-side, no nested scroll areas.
+- **Never hover-dependent.** Touch has no hover.
+- **Every destructive action needs confirmation** — a mis-tap with gloves is
+  routine, not exceptional.
+- **State is always visible.** Especially upload state: a queued photo shows as
+  queued. A silent queue makes users retake photos they already captured.
+
+## Verifying
+
+Check every interactive component in Comfortable at the _Pixel (field)_
+viewport before calling it done. The a11y addon catches contrast; it does not
+catch a 32px button that was fine on a desktop.

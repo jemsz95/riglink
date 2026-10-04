@@ -1,0 +1,40 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+import { ElevationScale } from './token-table'
+
+<Meta title="Design Tokens/Elevation & motion" />
+
+# Elevation
+
+<ElevationScale />
+
+Elevation is a **hint**, not the mechanism. Heavy shadows disappear in direct
+sunlight, so separation is carried primarily by `--border` contrast and surface
+colour (`--card` against `--background`). Shadow adds depth for users who can
+see it and costs nothing for users who cannot.
+
+| Token       | Use                              |
+| ----------- | -------------------------------- |
+| `shadow-e1` | Resting cards, table headers     |
+| `shadow-e2` | Dropdowns, popovers, hover lift  |
+| `shadow-e3` | Dialogs, sheets, command palette |
+
+# Motion
+
+| Token             | Value | Use                                |
+| ----------------- | ----- | ---------------------------------- |
+| `--duration-fast` | 120ms | Hover, focus, checkbox, toggle     |
+| `--duration-base` | 200ms | Dropdowns, popovers, tab switches  |
+| `--duration-slow` | 320ms | Sheets, dialogs, route transitions |
+
+Easing is `--ease-out-quint` for anything entering. Nothing in this product
+needs a bespoke curve.
+
+## Rules
+
+- **Motion communicates origin, not personality.** A sheet slides from the edge
+  it belongs to; a dropdown scales from its trigger. If an animation does not
+  explain where something came from, remove it.
+- **Nothing animates longer than 320ms.** Dispatchers use this all day.
+- **`prefers-reduced-motion` is honoured globally** in the base layer of
+  `styles.css`. Do not add motion that bypasses it, and never make an animation
+  the only indication that something changed.

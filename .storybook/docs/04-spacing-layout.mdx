@@ -1,0 +1,39 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+import { SpacingScale, RadiusScale } from './token-table'
+
+<Meta title="Design Tokens/Spacing & layout" />
+
+# Spacing and layout
+
+Tailwind's 4px base scale, rendered at real size.
+
+<SpacingScale />
+
+## Density-aware spacing
+
+Two tokens follow the active density rather than being fixed:
+
+| Utility                      | Compact | Comfortable |
+| ---------------------------- | ------- | ----------- |
+| `min-h-touch` / `size-touch` | 44px    | 48px        |
+| `h-row`                      | 36px    | 48px        |
+
+Use these for anything a finger touches or any table row. Hardcoding `h-9`
+means the field shell silently keeps office ergonomics.
+
+## Radius
+
+<RadiusScale />
+
+`rounded-lg` (= `--radius`) is the default for cards, inputs and buttons.
+`rounded-md` for nested elements, `rounded-xl` for sheets and dialogs.
+
+## Layout rules
+
+- **Tables never scroll horizontally on a phone.** Below `md`, a data table
+  becomes a stack of cards. Horizontal scroll inside a page is a last resort
+  for genuinely wide content, and then only in its own container.
+- **Primary actions live in the bottom third on mobile** — that is the
+  thumb-reachable zone one-handed.
+- **No hover-only affordances.** Anything discoverable by hover needs a
+  persistent equivalent, because touch has no hover.

@@ -1,0 +1,42 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+
+<Meta title="Design Tokens/Welcome" />
+
+# riglink design guide
+
+This is the living visual reference for riglink — a field service management
+product with a client portal. It is generated from the same code the app ships,
+so it cannot drift: every colour, size and shadow on these pages is read from
+the real stylesheet at runtime.
+
+## How to read it
+
+- **Design Tokens** — the raw vocabulary: colour, type, spacing, radius,
+  elevation, motion. Start here.
+- **Patterns** — how the vocabulary combines: density, status language,
+  empty/error/loading states, form conventions.
+- **Primitives** — unstyled-to-styled building blocks from shadcn/ui.
+- **App** — our own generic components: shells, tables, page headers.
+- **Domain** — components that know about jobs, quotes, evidence, invoices.
+- **Pages** — full route compositions.
+
+## Two switches, top right
+
+Every story renders under a **theme** (light/dark) and a **density**
+(compact/comfortable). Density is not a theme — it is an ergonomics axis:
+_compact_ is the office table, _comfortable_ is a phone held in a gloved hand
+at a job site. A component must work in all four combinations.
+
+## The audiences
+
+Three surfaces share one design system:
+
+| Surface       | Who                 | Conditions                                        |
+| ------------- | ------------------- | ------------------------------------------------- |
+| Staff app     | Owners, dispatchers | Desktop, dense, keyboard-driven                   |
+| Field         | Technicians         | Phone, one-handed, sunlight, gloves, poor signal  |
+| Client portal | Customers           | Occasional use, unfamiliar, must feel trustworthy |
+
+When those pull in different directions, the field wins on ergonomics and the
+portal wins on clarity. The staff app can afford density because its users are
+in it daily.

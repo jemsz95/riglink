@@ -1,0 +1,64 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+import { ColorTokens } from './token-table'
+
+<Meta title="Design Tokens/Colour" />
+
+# Colour
+
+Every value below is read from the live stylesheet and converted by the browser,
+then scored for WCAG contrast against the surface it is actually read on.
+**Flip the theme switch (top right) and every number recomputes.** If a row says
+Fail, that is a bug in `src/styles.css`, not in this page.
+
+## Surfaces and content
+
+<ColorTokens
+  match="^--color-(background|foreground|card|card-foreground|popover|popover-foreground|muted|muted-foreground|border|input)$"
+  caption="Foreground-on-background is the ratio that governs body text. --border and --input are non-text and are exempt from the 4.5:1 target; they need 3:1 against their adjacent surface."
+/>
+
+## Actions
+
+<ColorTokens
+  match="^--color-(primary|primary-foreground|secondary|secondary-foreground|accent|accent-foreground|destructive|destructive-foreground|ring)$"
+  caption="Each *-foreground is scored against its own base, which is how it is used in a filled button."
+/>
+
+## Feedback
+
+<ColorTokens
+  match="^--color-(success|success-foreground|warning|warning-foreground|info|info-foreground)$"
+  caption="Transient outcomes of an action. Not for job lifecycle state -- see below."
+/>
+
+## Job lifecycle
+
+<ColorTokens
+  match="^--color-status-"
+  caption="A deliberately separate scale. These are scored against --foreground because they appear as badge text and dots, not as filled surfaces."
+/>
+
+Why separate from feedback: a job being **complete** is not the same event as an
+operation **succeeding**. Folding them together collapses the vocabulary and
+makes "saved" and "work finished" look identical. See Patterns → Status
+language for which token each state uses.
+
+## Charts
+
+<ColorTokens
+  match="^--color-chart-"
+  caption="Ordered for maximum separation between adjacent series, so chart-1 next to chart-2 is always distinguishable."
+/>
+
+## Rules
+
+1. **Never use a raw colour in markup.** No `#hex`, no `oklch()`, no
+   `bg-teal-600`. Only semantic utilities: `bg-primary`, `text-muted-foreground`,
+   `bg-status-quoted`. That is what makes per-tenant branding a one-line
+   override later.
+2. **Never define a colour only inside `.dark`.** Define it in `:root` first,
+   then override. A token that exists only in one theme is invisible in the other.
+3. **`@theme inline` is load-bearing.** The bridge block in `styles.css` must
+   stay `inline`, or Tailwind resolves values at build time and dark mode
+   silently stops working — the utilities keep the light value. This is the
+   single easiest way to break theming in Tailwind v4.

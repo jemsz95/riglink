@@ -1,0 +1,25 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+import { TypeScale } from './token-table'
+
+<Meta title="Design Tokens/Typography" />
+
+# Typography
+
+Inter for UI, JetBrains Mono for anything numeric or identifying. Sizes below
+are measured from the live stylesheet.
+
+<TypeScale />
+
+## Rules
+
+- **No weight below 400.** Thin text is unreadable outdoors, and this product
+  is read outdoors.
+- **`text-base` (16px) is the floor in the field shell.** It is also what stops
+  iOS zooming the viewport when an input takes focus.
+- **`text-2xs` is for dense table metadata only** — timestamps, IDs, units. It
+  is one step below Tailwind's `xs` and does not belong in prose.
+- **Money, quantities and IDs get `.tabular`** (`font-variant-numeric:
+tabular-nums`). Without it, a column of currency shifts horizontally every
+  time a digit changes, which reads as flicker during live updates.
+- **Line length caps around 70 characters** for portal prose. Clients read this
+  cold, unlike staff.
