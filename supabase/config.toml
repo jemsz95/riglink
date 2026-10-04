@@ -148,16 +148,8 @@ file_size_limit = "25MiB"
 [storage.s3_protocol]
 enabled = true
 
-# Image transformation API is available to Supabase Pro plan.
-#
-# EXPECTED PERMANENT DIFF: `config diff` reports
-# `storage.image_transformation.enabled` as remote_only, because the hosted
-# project has it on and this block is commented out here. Left commented
-# deliberately -- declaring it would make `supabase start` fail on a plan that
-# does not have the feature. It is remote_only rather than a conflict, so
-# `config push` does not touch it.
-# [storage.image_transformation]
-# enabled = true
+# Image transformation is a Pro plan feature. Off until the project is on a
+# paid plan; see [storage.image_transformation] below.
 
 # Store analytical data in S3 for running ETL jobs over Iceberg Catalog
 # This feature is only available on the hosted platform.
@@ -170,14 +162,15 @@ max_catalogs = 2
 # Analytics Buckets is available to Supabase Pro plan.
 # [storage.analytics.buckets.my-warehouse]
 
-# Store vector embeddings in S3 for large and durable datasets
+# Store vector embeddings in S3 for large and durable datasets. Unused.
 [storage.vector]
-enabled = true
+enabled = false
 max_buckets = 10
 max_indexes = 5
 
+# Pro plan only. Turn on with the plan upgrade.
 [storage.image_transformation]
-enabled = true
+enabled = false
 
 # Vector Buckets is available to Supabase Pro plan.
 # [storage.vector.buckets.documents-openai]
@@ -186,17 +179,10 @@ enabled = true
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-# BEFORE THE FIRST REAL DEPLOY, change this to the hosting hostname and run
-# `npm run config:push`. Magic links and OAuth both redirect to `site_url`, so
-# while it says localhost a link opened on a phone lands on a dev server that
-# is not there -- and the failure looks like "magic links are broken" rather
-# than "the config is still pointing at a laptop".
-#
-#   site_url = "https://my.riglink.app"
-#
-# Wait until `tofu output host_state` (infra/tofu) says HOST_ACTIVE: pushed
-# earlier, every magic link points at a hostname that does not serve yet.
-site_url = "http://localhost:3000"
+# The production app, on Firebase Hosting (infra/tofu). Magic links and OAuth
+# redirect here unless the request names an `additional_redirect_urls` entry,
+# which is how local dev still lands on localhost.
+site_url = "https://my.riglink.app"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
@@ -315,15 +301,15 @@ otp_length = 8
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 600
 
-# Use a production-ready SMTP server
-# [auth.email.smtp]
-# enabled = true
-# host = "smtp.sendgrid.net"
-# port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# Auth emails (magic links, confirmations) go through Postmark, configured in
+# the dashboard (Authentication -> Emails -> SMTP Settings), NOT here.
+#
+# EXPECTED PERMANENT DIFF: `config diff` lists the auth.email.smtp.* fields as
+# remote_only. That is deliberate: an undeclared block is left alone by
+# `config push`, so the credentials never touch this repo or its environment.
+# Do not "fix" it by declaring [auth.email.smtp] -- a declared block is pushed,
+# and an unset `env(...)` credential is pushed as its literal text, which
+# stops every sign-in email.
 
 # Uncomment to customize email template
 # [auth.email.template.invite]

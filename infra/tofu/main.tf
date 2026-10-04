@@ -39,10 +39,13 @@ resource "google_firebase_hosting_custom_domain" "app" {
   wait_dns_verification = false
 }
 
-# Firebase Hosting's "quick setup" for a subdomain: an A record to the
+# Firebase Hosting's documented setup for a subdomain: an A record to the
 # Hosting anycast address, and a TXT record proving this site may serve the
-# name. A CNAME is not an option -- it would forbid the TXT record on the
-# same name.
+# name.
+#
+# Hosting's API also lists a CNAME to `<site>.web.app` as its "desired"
+# record, and reports it as an ADD even once these records are verified. Both
+# are valid; A + TXT is the documented one and is what this uses.
 locals {
   dns_records = {
     A   = ["199.36.158.100"]
@@ -59,23 +62,20 @@ resource "google_dns_record_set" "app" {
   rrdatas      = each.value
 }
 
-# The records above are what Firebase documents today. If Hosting ever asks
-# for different ones -- a new address, an extra record -- this fails `tofu
-# plan` loudly instead of leaving a domain whose certificate never renews.
-check "dns_matches_firebase" {
+# Firebase's own verdict on the records above. If Hosting ever stops
+# accepting them -- a new address, a changed ownership rule -- `tofu plan`
+# warns, instead of the domain quietly going dark or its certificate failing
+# to renew. Compare `tofu output required_dns_records` to see what it wants.
+#
+# Right after the domain is created Hosting has not checked DNS yet, so the
+# first apply may warn once; the next plan is the one that counts.
+check "dns_accepted_by_firebase" {
   assert {
-    condition = alltrue([
-      for r in flatten([
-        for d in google_firebase_hosting_custom_domain.app.required_dns_updates[0].desired :
-        d.records
-      ]) :
-      contains(
-        lookup(local.dns_records, r.type, []),
-        r.type == "TXT" ? "\"${trim(r.rdata, "\"")}\"" : r.rdata,
-      )
-      if r.required_action != "REMOVE"
-    ])
-    error_message = "Firebase Hosting wants DNS records this configuration does not create. Compare `tofu output required_dns_records` with local.dns_records in main.tf."
+    condition = (
+      google_firebase_hosting_custom_domain.app.host_state == "HOST_ACTIVE" &&
+      google_firebase_hosting_custom_domain.app.ownership_state == "OWNERSHIP_ACTIVE"
+    )
+    error_message = "Firebase Hosting does not accept the DNS records for ${var.app_hostname} (host: ${google_firebase_hosting_custom_domain.app.host_state}, ownership: ${google_firebase_hosting_custom_domain.app.ownership_state}). See `tofu output required_dns_records`."
   }
 }
 
@@ -144,4 +144,18 @@ resource "google_service_account_iam_member" "github_deploys" {
   service_account_id = google_service_account.deployer.name
   role               = "roles/iam.workloadIdentityUser"
   member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${var.github_repository}"
+}
+
+# What the deploy job in .github/workflows/ci.yml authenticates with. Written
+# from here so they cannot drift from the resources they name. Variables, not
+# secrets: they identify the pool and the account, and only this repository's
+# main branch is allowed to use them.
+resource "github_actions_variable" "deploy" {
+  for_each = {
+    GCP_WORKLOAD_IDENTITY_PROVIDER = google_iam_workload_identity_pool_provider.github.name
+    GCP_DEPLOY_SERVICE_ACCOUNT     = google_service_account.deployer.email
+  }
+  repository    = split("/", var.github_repository)[1]
+  variable_name = each.key
+  value         = each.value
 }

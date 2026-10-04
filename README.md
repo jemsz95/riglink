@@ -585,8 +585,8 @@ mechanisms already own.
 
 ### Still to do before the first real deploy
 
-1. `tofu apply` in `infra/tofu/` (see its README), then set the two GitHub
-   Actions variables it prints.
+1. `tofu apply` in `infra/tofu/` (see its README). It also writes the two
+   GitHub Actions variables the deploy job reads.
 2. Once `tofu output host_state` is `HOST_ACTIVE`, set `site_url` in
    `config.toml` to `https://my.riglink.app` and `npm run config:push`. Until
    then magic links redirect to `localhost:3000`, and the failure presents as

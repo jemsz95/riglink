@@ -11,6 +11,10 @@ terraform {
       source  = "hashicorp/google-beta"
       version = "~> 8.0"
     }
+    github = {
+      source  = "integrations/github"
+      version = "~> 6.0"
+    }
   }
 
   # State is LOCAL by default and gitignored. That is deliberate for a
@@ -36,4 +40,10 @@ provider "google" {
 
 provider "google-beta" {
   project = var.project_id
+}
+
+# Reads GITHUB_TOKEN from the environment -- see README.md for the exact,
+# single-repository permissions it needs.
+provider "github" {
+  owner = split("/", var.github_repository)[0]
 }

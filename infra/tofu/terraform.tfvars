@@ -3,4 +3,4 @@
 project_id        = "riglink-508420"
 dns_zone_name     = "riglink"
 app_hostname      = "my.riglink.app"
-github_repository = "OWNER/REPO" # TODO: the GitHub repository CI runs in
+github_repository = "jemsz95/riglink"
